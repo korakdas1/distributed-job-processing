@@ -1,0 +1,3590 @@
+{
+  "benchmark_schema_version": 1,
+  "profile": "full",
+  "canonical_baseline": true,
+  "environment": {
+    "captured_at": "2026-08-27T13:38:32.382959+00:00",
+    "os": "Linux",
+    "kernel": "7.0.0-30-generic",
+    "python": "3.12.3",
+    "cpu_model": "11th Gen Intel(R) Core(TM) i5-11260H @ 2.60GHz",
+    "logical_cpus": 12,
+    "ram_mib": 64026.8,
+    "loadavg_1_5_15": [
+      1.51318359375,
+      1.67333984375,
+      1.61279296875
+    ],
+    "docker": "Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2",
+    "docker_compose": "docker-compose version 1.29.2, build unknown\ndocker-py version: 5.0.3\nCPython version: 3.12.3\nOpenSSL version: OpenSSL 3.0.13 30 Jan 2024",
+    "app_image": "job-platform-app:local",
+    "app_image_id": "sha256:2030d3d7199f24d2256f7a4f59c972d75fdaa25e4d28b838993c4daac3145fab",
+    "postgres_image": "postgres:16-alpine",
+    "postgres_image_note": "[postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc2068",
+    "redis_image": "redis:7-alpine",
+    "timing": {
+      "JOB_LEASE_TIMEOUT_SECONDS": "60 (Compose default; not shortened)",
+      "WORKER_HEARTBEAT_INTERVAL_SECONDS": "2",
+      "WORKER_HEARTBEAT_TTL_SECONDS": "6"
+    },
+    "sqlalchemy_pool": "create_async_engine default (pool_pre_ping=True; no benchmark-specific tuning)",
+    "uvicorn": "single process exec uvicorn ... --host 0.0.0.0 --port 8000 (no --workers)",
+    "local_machine_caveat": "Results are from one local development machine using Docker Compose. They are not production capacity.",
+    "development_stack_running": true,
+    "project": "job-platform-load-bench",
+    "ports": {
+      "api": "18002",
+      "postgres": "15435",
+      "redis": "16381"
+    },
+    "profile": "full",
+    "word_count_chars": 351,
+    "sleep_seconds": 0.5
+  },
+  "definitions": {
+    "submission_latency_ms": "client perf_counter immediately before POST until full HTTP response",
+    "submitted_jobs_per_sec": "HTTP 202 count / client submission wall-clock seconds",
+    "completed_jobs_per_sec": "SUCCEEDED measured jobs / (submit wall + wait-until-terminal wall)",
+    "queue_latency_ms": "job_attempts.started_at - jobs.queued_at for attempt #1",
+    "execution_duration_ms": "job_attempts.duration_ms (else finished_at - started_at)",
+    "end_to_end_ms": "jobs.completed_at - jobs.created_at",
+    "percentile": "linear interpolation at rank (p/100)*(n-1); p99 omitted if n<50",
+    "error_rate_http": "non-202 POST count / attempted POSTs",
+    "error_rate_jobs": "non-SUCCEEDED measured jobs / measured jobs",
+    "http_reuse": "one httpx.AsyncClient per batch with keepalive; semaphore concurrency",
+    "completion_observation": "batched read-only SQL every 400ms; no per-job GET polling"
+  },
+  "cpu_calibration": {
+    "limit": 100000,
+    "samples": 3,
+    "median_exec_ms": 9.0,
+    "note": "handler cap is 100000; target 100-500ms may be unreachable on this CPU"
+  },
+  "submission": [
+    {
+      "run_id": "load-submission-c1-r1",
+      "family": "submission",
+      "concurrency": 1,
+      "repeat": 1,
+      "jobs_attempted": 150,
+      "http_202": 150,
+      "http_errors": 0,
+      "wall_seconds": 0.784,
+      "submitted_jobs_per_sec": 191.3,
+      "post_latency": {
+        "n": 150.0,
+        "p50": 5.0,
+        "p95": 6.0,
+        "p99": 7.3
+      },
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 22.9,
+          "peak_cpu_percent": 22.9,
+          "mean_mem_mib": 67.0,
+          "peak_mem_mib": 67.0,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 2.6,
+          "peak_cpu_percent": 2.6,
+          "mean_mem_mib": 26.5,
+          "peak_mem_mib": 26.5,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "publisher": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "scheduler": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "worker": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        }
+      },
+      "unpublished_after": 150
+    },
+    {
+      "run_id": "load-submission-c1-r2",
+      "family": "submission",
+      "concurrency": 1,
+      "repeat": 2,
+      "jobs_attempted": 150,
+      "http_202": 150,
+      "http_errors": 0,
+      "wall_seconds": 0.776,
+      "submitted_jobs_per_sec": 193.4,
+      "post_latency": {
+        "n": 150.0,
+        "p50": 5.0,
+        "p95": 6.1,
+        "p99": 6.7
+      },
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 1.6,
+          "peak_cpu_percent": 1.6,
+          "mean_mem_mib": 67.0,
+          "peak_mem_mib": 67.0,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 0.3,
+          "peak_cpu_percent": 0.3,
+          "mean_mem_mib": 26.4,
+          "peak_mem_mib": 26.4,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "publisher": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "scheduler": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "worker": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        }
+      },
+      "unpublished_after": 300
+    },
+    {
+      "run_id": "load-submission-c1-r3",
+      "family": "submission",
+      "concurrency": 1,
+      "repeat": 3,
+      "jobs_attempted": 150,
+      "http_202": 150,
+      "http_errors": 0,
+      "wall_seconds": 0.754,
+      "submitted_jobs_per_sec": 199.0,
+      "post_latency": {
+        "n": 150.0,
+        "p50": 4.8,
+        "p95": 5.9,
+        "p99": 6.8
+      },
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.9,
+          "peak_cpu_percent": 0.9,
+          "mean_mem_mib": 66.6,
+          "peak_mem_mib": 66.6,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 26.4,
+          "peak_mem_mib": 26.4,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "publisher": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "scheduler": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "worker": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        }
+      },
+      "unpublished_after": 450
+    },
+    {
+      "run_id": "load-submission-c10-r1",
+      "family": "submission",
+      "concurrency": 10,
+      "repeat": 1,
+      "jobs_attempted": 150,
+      "http_202": 150,
+      "http_errors": 0,
+      "wall_seconds": 0.468,
+      "submitted_jobs_per_sec": 320.8,
+      "post_latency": {
+        "n": 150.0,
+        "p50": 25.8,
+        "p95": 58.7,
+        "p99": 62.6
+      },
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 68.1,
+          "peak_mem_mib": 68.1,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 0.0,
+          "peak_cpu_percent": 0.0,
+          "mean_mem_mib": 34.9,
+          "peak_mem_mib": 34.9,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "publisher": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "scheduler": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "worker": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        }
+      },
+      "unpublished_after": 600
+    },
+    {
+      "run_id": "load-submission-c10-r2",
+      "family": "submission",
+      "concurrency": 10,
+      "repeat": 2,
+      "jobs_attempted": 150,
+      "http_202": 150,
+      "http_errors": 0,
+      "wall_seconds": 0.476,
+      "submitted_jobs_per_sec": 314.8,
+      "post_latency": {
+        "n": 150.0,
+        "p50": 28.7,
+        "p95": 50.1,
+        "p99": 54.7
+      },
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 68.2,
+          "peak_mem_mib": 68.2,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 0.0,
+          "peak_cpu_percent": 0.0,
+          "mean_mem_mib": 35.2,
+          "peak_mem_mib": 35.2,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "publisher": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "scheduler": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "worker": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        }
+      },
+      "unpublished_after": 750
+    },
+    {
+      "run_id": "load-submission-c10-r3",
+      "family": "submission",
+      "concurrency": 10,
+      "repeat": 3,
+      "jobs_attempted": 150,
+      "http_202": 150,
+      "http_errors": 0,
+      "wall_seconds": 0.546,
+      "submitted_jobs_per_sec": 274.6,
+      "post_latency": {
+        "n": 150.0,
+        "p50": 32.8,
+        "p95": 51.3,
+        "p99": 55.5
+      },
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 18.4,
+          "peak_cpu_percent": 18.4,
+          "mean_mem_mib": 81.0,
+          "peak_mem_mib": 81.0,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 2.6,
+          "peak_cpu_percent": 2.6,
+          "mean_mem_mib": 35.8,
+          "peak_mem_mib": 35.8,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "publisher": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "scheduler": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "worker": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        }
+      },
+      "unpublished_after": 900
+    },
+    {
+      "run_id": "load-submission-c25-r1",
+      "family": "submission",
+      "concurrency": 25,
+      "repeat": 1,
+      "jobs_attempted": 150,
+      "http_202": 150,
+      "http_errors": 0,
+      "wall_seconds": 0.51,
+      "submitted_jobs_per_sec": 294.0,
+      "post_latency": {
+        "n": 150.0,
+        "p50": 74.6,
+        "p95": 115.3,
+        "p99": 126.3
+      },
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.1,
+          "peak_mem_mib": 70.1,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 0.0,
+          "peak_cpu_percent": 0.0,
+          "mean_mem_mib": 35.6,
+          "peak_mem_mib": 35.6,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "publisher": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "scheduler": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "worker": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        }
+      },
+      "unpublished_after": 1050
+    },
+    {
+      "run_id": "load-submission-c25-r2",
+      "family": "submission",
+      "concurrency": 25,
+      "repeat": 2,
+      "jobs_attempted": 150,
+      "http_202": 150,
+      "http_errors": 0,
+      "wall_seconds": 0.478,
+      "submitted_jobs_per_sec": 313.6,
+      "post_latency": {
+        "n": 150.0,
+        "p50": 62.6,
+        "p95": 142.9,
+        "p99": 210.0
+      },
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.6,
+          "peak_mem_mib": 70.6,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 0.0,
+          "peak_cpu_percent": 0.0,
+          "mean_mem_mib": 35.8,
+          "peak_mem_mib": 35.8,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "publisher": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "scheduler": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "worker": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        }
+      },
+      "unpublished_after": 1200
+    },
+    {
+      "run_id": "load-submission-c25-r3",
+      "family": "submission",
+      "concurrency": 25,
+      "repeat": 3,
+      "jobs_attempted": 150,
+      "http_202": 150,
+      "http_errors": 0,
+      "wall_seconds": 0.529,
+      "submitted_jobs_per_sec": 283.4,
+      "post_latency": {
+        "n": 150.0,
+        "p50": 68.7,
+        "p95": 143.5,
+        "p99": 160.8
+      },
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 25.8,
+          "peak_cpu_percent": 25.8,
+          "mean_mem_mib": 71.0,
+          "peak_mem_mib": 71.0,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 36.0,
+          "peak_mem_mib": 36.0,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "publisher": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "scheduler": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "worker": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        }
+      },
+      "unpublished_after": 1350
+    },
+    {
+      "run_id": "load-submission-c50-r1",
+      "family": "submission",
+      "concurrency": 50,
+      "repeat": 1,
+      "jobs_attempted": 150,
+      "http_202": 150,
+      "http_errors": 0,
+      "wall_seconds": 0.481,
+      "submitted_jobs_per_sec": 311.6,
+      "post_latency": {
+        "n": 150.0,
+        "p50": 126.4,
+        "p95": 295.9,
+        "p99": 346.9
+      },
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 73.4,
+          "peak_mem_mib": 73.4,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 0.0,
+          "peak_cpu_percent": 0.0,
+          "mean_mem_mib": 36.4,
+          "peak_mem_mib": 36.4,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "publisher": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "scheduler": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "worker": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        }
+      },
+      "unpublished_after": 1500
+    },
+    {
+      "run_id": "load-submission-c50-r2",
+      "family": "submission",
+      "concurrency": 50,
+      "repeat": 2,
+      "jobs_attempted": 150,
+      "http_202": 150,
+      "http_errors": 0,
+      "wall_seconds": 0.523,
+      "submitted_jobs_per_sec": 286.9,
+      "post_latency": {
+        "n": 150.0,
+        "p50": 144.0,
+        "p95": 334.7,
+        "p99": 408.9
+      },
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 74.7,
+          "peak_mem_mib": 74.7,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 1.2,
+          "peak_cpu_percent": 1.2,
+          "mean_mem_mib": 37.1,
+          "peak_mem_mib": 37.1,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "publisher": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "scheduler": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "worker": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        }
+      },
+      "unpublished_after": 1650
+    },
+    {
+      "run_id": "load-submission-c50-r3",
+      "family": "submission",
+      "concurrency": 50,
+      "repeat": 3,
+      "jobs_attempted": 150,
+      "http_202": 150,
+      "http_errors": 0,
+      "wall_seconds": 0.48,
+      "submitted_jobs_per_sec": 312.4,
+      "post_latency": {
+        "n": 150.0,
+        "p50": 121.8,
+        "p95": 339.8,
+        "p99": 383.2
+      },
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 73.3,
+          "peak_mem_mib": 73.3,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 0.0,
+          "peak_cpu_percent": 0.0,
+          "mean_mem_mib": 37.1,
+          "peak_mem_mib": 37.1,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "publisher": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "scheduler": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        },
+        "worker": {
+          "mean_cpu_percent": null,
+          "peak_cpu_percent": null,
+          "mean_mem_mib": null,
+          "peak_mem_mib": null,
+          "samples": 0
+        }
+      },
+      "unpublished_after": 1800
+    }
+  ],
+  "lightweight": [
+    {
+      "run_id": "load-lightweight-w1-r1",
+      "family": "lightweight",
+      "workers": 1,
+      "active_worker_ids": [
+        "worker-487862d4"
+      ],
+      "jobs": 200,
+      "http_202": 200,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.695,
+      "e2e_wall_seconds": 3.986,
+      "submitted_jobs_per_sec": 287.7,
+      "completed_jobs_per_sec": 50.2,
+      "post_latency": {
+        "n": 200.0,
+        "p50": 67.6,
+        "p95": 154.9,
+        "p99": 188.8
+      },
+      "queue": {
+        "n": 200.0,
+        "p50": 2174.6,
+        "p95": 2834.9,
+        "p99": 2894.1
+      },
+      "execution": {
+        "n": 200.0,
+        "p50": 1.0,
+        "p95": 1.0,
+        "p99": 2.0
+      },
+      "e2e": {
+        "n": 200.0,
+        "p50": 2180.7,
+        "p95": 2839.8,
+        "p99": 2899.1
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 200
+      },
+      "worker_ids": [
+        "worker-487862d4"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.3,
+          "peak_mem_mib": 70.3,
+          "samples": 2
+        },
+        "postgres": {
+          "mean_cpu_percent": 9.2,
+          "peak_cpu_percent": 18.2,
+          "mean_mem_mib": 39.7,
+          "peak_mem_mib": 40.1,
+          "samples": 2
+        },
+        "redis": {
+          "mean_cpu_percent": 1.3,
+          "peak_cpu_percent": 2.2,
+          "mean_mem_mib": 4.1,
+          "peak_mem_mib": 4.2,
+          "samples": 2
+        },
+        "publisher": {
+          "mean_cpu_percent": 14.1,
+          "peak_cpu_percent": 27.9,
+          "mean_mem_mib": 54.0,
+          "peak_mem_mib": 54.0,
+          "samples": 2
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 45.9,
+          "peak_mem_mib": 46.1,
+          "samples": 2
+        },
+        "worker": {
+          "mean_cpu_percent": 17.8,
+          "peak_cpu_percent": 35.5,
+          "mean_mem_mib": 54.2,
+          "peak_mem_mib": 54.6,
+          "samples": 2
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-lightweight-w1-r2",
+      "family": "lightweight",
+      "workers": 1,
+      "active_worker_ids": [
+        "worker-487862d4"
+      ],
+      "jobs": 200,
+      "http_202": 200,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.77,
+      "e2e_wall_seconds": 2.832,
+      "submitted_jobs_per_sec": 259.7,
+      "completed_jobs_per_sec": 70.6,
+      "post_latency": {
+        "n": 200.0,
+        "p50": 77.7,
+        "p95": 199.1,
+        "p99": 281.7
+      },
+      "queue": {
+        "n": 200.0,
+        "p50": 1229.9,
+        "p95": 1770.8,
+        "p99": 1824.1
+      },
+      "execution": {
+        "n": 200.0,
+        "p50": 1.0,
+        "p95": 1.0,
+        "p99": 2.0
+      },
+      "e2e": {
+        "n": 200.0,
+        "p50": 1236.7,
+        "p95": 1775.7,
+        "p99": 1830.3
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 200
+      },
+      "worker_ids": [
+        "worker-487862d4"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 20.2,
+          "peak_cpu_percent": 40.4,
+          "mean_mem_mib": 70.6,
+          "peak_mem_mib": 70.7,
+          "samples": 2
+        },
+        "postgres": {
+          "mean_cpu_percent": 24.6,
+          "peak_cpu_percent": 49.0,
+          "mean_mem_mib": 40.1,
+          "peak_mem_mib": 41.0,
+          "samples": 2
+        },
+        "redis": {
+          "mean_cpu_percent": 1.9,
+          "peak_cpu_percent": 3.4,
+          "mean_mem_mib": 4.3,
+          "peak_mem_mib": 4.5,
+          "samples": 2
+        },
+        "publisher": {
+          "mean_cpu_percent": 35.7,
+          "peak_cpu_percent": 71.2,
+          "mean_mem_mib": 54.4,
+          "peak_mem_mib": 54.8,
+          "samples": 2
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 46.2,
+          "peak_mem_mib": 46.3,
+          "samples": 2
+        },
+        "worker": {
+          "mean_cpu_percent": 30.7,
+          "peak_cpu_percent": 61.3,
+          "mean_mem_mib": 54.4,
+          "peak_mem_mib": 54.5,
+          "samples": 2
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-lightweight-w1-r3",
+      "family": "lightweight",
+      "workers": 1,
+      "active_worker_ids": [
+        "worker-487862d4"
+      ],
+      "jobs": 200,
+      "http_202": 200,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.592,
+      "e2e_wall_seconds": 3.471,
+      "submitted_jobs_per_sec": 337.6,
+      "completed_jobs_per_sec": 57.6,
+      "post_latency": {
+        "n": 200.0,
+        "p50": 64.6,
+        "p95": 106.9,
+        "p99": 118.3
+      },
+      "queue": {
+        "n": 200.0,
+        "p50": 1932.1,
+        "p95": 2635.7,
+        "p99": 2689.1
+      },
+      "execution": {
+        "n": 200.0,
+        "p50": 1.0,
+        "p95": 1.0,
+        "p99": 2.0
+      },
+      "e2e": {
+        "n": 200.0,
+        "p50": 1938.2,
+        "p95": 2641.0,
+        "p99": 2693.9
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 200
+      },
+      "worker_ids": [
+        "worker-487862d4"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 12.5,
+          "peak_cpu_percent": 24.9,
+          "mean_mem_mib": 70.5,
+          "peak_mem_mib": 70.5,
+          "samples": 2
+        },
+        "postgres": {
+          "mean_cpu_percent": 14.2,
+          "peak_cpu_percent": 28.2,
+          "mean_mem_mib": 40.6,
+          "peak_mem_mib": 40.9,
+          "samples": 2
+        },
+        "redis": {
+          "mean_cpu_percent": 1.3,
+          "peak_cpu_percent": 2.2,
+          "mean_mem_mib": 4.2,
+          "peak_mem_mib": 4.3,
+          "samples": 2
+        },
+        "publisher": {
+          "mean_cpu_percent": 29.8,
+          "peak_cpu_percent": 59.3,
+          "mean_mem_mib": 54.4,
+          "peak_mem_mib": 54.8,
+          "samples": 2
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 45.8,
+          "peak_mem_mib": 45.8,
+          "samples": 2
+        },
+        "worker": {
+          "mean_cpu_percent": 5.4,
+          "peak_cpu_percent": 10.7,
+          "mean_mem_mib": 54.4,
+          "peak_mem_mib": 54.8,
+          "samples": 2
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-lightweight-w2-r1",
+      "family": "lightweight",
+      "workers": 2,
+      "active_worker_ids": [
+        "worker-ec004442",
+        "worker-487862d4"
+      ],
+      "jobs": 200,
+      "http_202": 200,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.652,
+      "e2e_wall_seconds": 2.306,
+      "submitted_jobs_per_sec": 307.0,
+      "completed_jobs_per_sec": 86.7,
+      "post_latency": {
+        "n": 200.0,
+        "p50": 68.3,
+        "p95": 139.7,
+        "p99": 159.9
+      },
+      "queue": {
+        "n": 200.0,
+        "p50": 1027.3,
+        "p95": 1269.4,
+        "p99": 1299.6
+      },
+      "execution": {
+        "n": 200.0,
+        "p50": 1.0,
+        "p95": 1.0,
+        "p99": 2.0
+      },
+      "e2e": {
+        "n": 200.0,
+        "p50": 1033.9,
+        "p95": 1275.9,
+        "p99": 1306.3
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 200
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-ec004442"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 24.9,
+          "peak_cpu_percent": 24.9,
+          "mean_mem_mib": 70.6,
+          "peak_mem_mib": 70.6,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 40.0,
+          "peak_cpu_percent": 40.0,
+          "mean_mem_mib": 43.6,
+          "peak_mem_mib": 43.6,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 2.4,
+          "peak_cpu_percent": 2.4,
+          "mean_mem_mib": 4.5,
+          "peak_mem_mib": 4.5,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 23.1,
+          "peak_cpu_percent": 23.1,
+          "mean_mem_mib": 53.8,
+          "peak_mem_mib": 53.8,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 45.8,
+          "peak_mem_mib": 45.8,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 124.3,
+          "peak_cpu_percent": 124.3,
+          "mean_mem_mib": 106.9,
+          "peak_mem_mib": 106.9,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-lightweight-w2-r2",
+      "family": "lightweight",
+      "workers": 2,
+      "active_worker_ids": [
+        "worker-ec004442",
+        "worker-487862d4"
+      ],
+      "jobs": 200,
+      "http_202": 200,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.627,
+      "e2e_wall_seconds": 2.28,
+      "submitted_jobs_per_sec": 319.2,
+      "completed_jobs_per_sec": 87.7,
+      "post_latency": {
+        "n": 200.0,
+        "p50": 67.4,
+        "p95": 126.9,
+        "p99": 143.0
+      },
+      "queue": {
+        "n": 200.0,
+        "p50": 1172.6,
+        "p95": 1493.8,
+        "p99": 1529.1
+      },
+      "execution": {
+        "n": 200.0,
+        "p50": 1.0,
+        "p95": 2.0,
+        "p99": 2.0
+      },
+      "e2e": {
+        "n": 200.0,
+        "p50": 1178.4,
+        "p95": 1500.7,
+        "p99": 1535.4
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 200
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-ec004442"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.7,
+          "peak_mem_mib": 70.7,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 44.9,
+          "peak_cpu_percent": 44.9,
+          "mean_mem_mib": 44.3,
+          "peak_mem_mib": 44.3,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 6.1,
+          "peak_cpu_percent": 6.1,
+          "mean_mem_mib": 4.4,
+          "peak_mem_mib": 4.4,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 26.6,
+          "peak_cpu_percent": 26.6,
+          "mean_mem_mib": 53.8,
+          "peak_mem_mib": 53.8,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 46.1,
+          "peak_mem_mib": 46.1,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 78.3,
+          "peak_cpu_percent": 78.3,
+          "mean_mem_mib": 107.0,
+          "peak_mem_mib": 107.0,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-lightweight-w2-r3",
+      "family": "lightweight",
+      "workers": 2,
+      "active_worker_ids": [
+        "worker-ec004442",
+        "worker-487862d4"
+      ],
+      "jobs": 200,
+      "http_202": 200,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.757,
+      "e2e_wall_seconds": 2.407,
+      "submitted_jobs_per_sec": 264.2,
+      "completed_jobs_per_sec": 83.1,
+      "post_latency": {
+        "n": 200.0,
+        "p50": 75.3,
+        "p95": 224.6,
+        "p99": 315.1
+      },
+      "queue": {
+        "n": 200.0,
+        "p50": 1322.0,
+        "p95": 1467.1,
+        "p99": 1488.0
+      },
+      "execution": {
+        "n": 200.0,
+        "p50": 1.0,
+        "p95": 1.0,
+        "p99": 2.0
+      },
+      "e2e": {
+        "n": 200.0,
+        "p50": 1327.0,
+        "p95": 1472.9,
+        "p99": 1495.1
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 200
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-ec004442"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.7,
+          "peak_mem_mib": 70.7,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 43.7,
+          "peak_cpu_percent": 43.7,
+          "mean_mem_mib": 44.9,
+          "peak_mem_mib": 44.9,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 4.1,
+          "peak_cpu_percent": 4.1,
+          "mean_mem_mib": 4.8,
+          "peak_mem_mib": 4.8,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 24.3,
+          "peak_cpu_percent": 24.3,
+          "mean_mem_mib": 54.0,
+          "peak_mem_mib": 54.0,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 45.8,
+          "peak_mem_mib": 45.8,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 130.7,
+          "peak_cpu_percent": 130.7,
+          "mean_mem_mib": 107.7,
+          "peak_mem_mib": 107.7,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-lightweight-w4-r1",
+      "family": "lightweight",
+      "workers": 4,
+      "active_worker_ids": [
+        "worker-b486d1df",
+        "worker-600eaad2",
+        "worker-ec004442",
+        "worker-487862d4"
+      ],
+      "jobs": 200,
+      "http_202": 200,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.669,
+      "e2e_wall_seconds": 1.916,
+      "submitted_jobs_per_sec": 299.0,
+      "completed_jobs_per_sec": 104.4,
+      "post_latency": {
+        "n": 200.0,
+        "p50": 71.1,
+        "p95": 144.7,
+        "p99": 164.3
+      },
+      "queue": {
+        "n": 200.0,
+        "p50": 909.5,
+        "p95": 1031.1,
+        "p99": 1054.4
+      },
+      "execution": {
+        "n": 200.0,
+        "p50": 1.0,
+        "p95": 2.0,
+        "p99": 2.0
+      },
+      "e2e": {
+        "n": 200.0,
+        "p50": 917.0,
+        "p95": 1038.0,
+        "p99": 1061.4
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 200
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-600eaad2",
+        "worker-b486d1df",
+        "worker-ec004442"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 26.4,
+          "peak_cpu_percent": 26.4,
+          "mean_mem_mib": 70.7,
+          "peak_mem_mib": 70.7,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 52.1,
+          "peak_cpu_percent": 52.1,
+          "mean_mem_mib": 48.4,
+          "peak_mem_mib": 48.4,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 4.8,
+          "peak_cpu_percent": 4.8,
+          "mean_mem_mib": 4.6,
+          "peak_mem_mib": 4.6,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 46.8,
+          "peak_cpu_percent": 46.8,
+          "mean_mem_mib": 53.8,
+          "peak_mem_mib": 53.8,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 45.8,
+          "peak_mem_mib": 45.8,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 158.3,
+          "peak_cpu_percent": 158.3,
+          "mean_mem_mib": 210.8,
+          "peak_mem_mib": 210.8,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-lightweight-w4-r2",
+      "family": "lightweight",
+      "workers": 4,
+      "active_worker_ids": [
+        "worker-b486d1df",
+        "worker-600eaad2",
+        "worker-ec004442",
+        "worker-487862d4"
+      ],
+      "jobs": 200,
+      "http_202": 200,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.756,
+      "e2e_wall_seconds": 1.587,
+      "submitted_jobs_per_sec": 264.6,
+      "completed_jobs_per_sec": 126.0,
+      "post_latency": {
+        "n": 200.0,
+        "p50": 73.4,
+        "p95": 199.8,
+        "p99": 312.7
+      },
+      "queue": {
+        "n": 200.0,
+        "p50": 522.8,
+        "p95": 765.8,
+        "p99": 818.4
+      },
+      "execution": {
+        "n": 200.0,
+        "p50": 1.0,
+        "p95": 2.0,
+        "p99": 2.0
+      },
+      "e2e": {
+        "n": 200.0,
+        "p50": 530.4,
+        "p95": 772.5,
+        "p99": 825.6
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 200
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-600eaad2",
+        "worker-b486d1df",
+        "worker-ec004442"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.7,
+          "peak_mem_mib": 70.7,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 21.0,
+          "peak_cpu_percent": 21.0,
+          "mean_mem_mib": 48.4,
+          "peak_mem_mib": 48.4,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 3.9,
+          "peak_cpu_percent": 3.9,
+          "mean_mem_mib": 4.6,
+          "peak_mem_mib": 4.6,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 18.1,
+          "peak_cpu_percent": 18.1,
+          "mean_mem_mib": 54.0,
+          "peak_mem_mib": 54.0,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 46.1,
+          "peak_mem_mib": 46.1,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 42.1,
+          "peak_cpu_percent": 42.1,
+          "mean_mem_mib": 210.7,
+          "peak_mem_mib": 210.7,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-lightweight-w4-r3",
+      "family": "lightweight",
+      "workers": 4,
+      "active_worker_ids": [
+        "worker-b486d1df",
+        "worker-600eaad2",
+        "worker-ec004442",
+        "worker-487862d4"
+      ],
+      "jobs": 200,
+      "http_202": 200,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.656,
+      "e2e_wall_seconds": 1.9,
+      "submitted_jobs_per_sec": 304.7,
+      "completed_jobs_per_sec": 105.3,
+      "post_latency": {
+        "n": 200.0,
+        "p50": 72.2,
+        "p95": 116.3,
+        "p99": 125.5
+      },
+      "queue": {
+        "n": 200.0,
+        "p50": 830.7,
+        "p95": 872.9,
+        "p99": 880.1
+      },
+      "execution": {
+        "n": 200.0,
+        "p50": 1.0,
+        "p95": 2.0,
+        "p99": 2.0
+      },
+      "e2e": {
+        "n": 200.0,
+        "p50": 838.5,
+        "p95": 879.8,
+        "p99": 888.2
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 200
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-600eaad2",
+        "worker-b486d1df",
+        "worker-ec004442"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.7,
+          "peak_mem_mib": 70.7,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 39.5,
+          "peak_cpu_percent": 39.5,
+          "mean_mem_mib": 49.4,
+          "peak_mem_mib": 49.4,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 3.8,
+          "peak_cpu_percent": 3.8,
+          "mean_mem_mib": 4.6,
+          "peak_mem_mib": 4.6,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 22.9,
+          "peak_cpu_percent": 22.9,
+          "mean_mem_mib": 53.8,
+          "peak_mem_mib": 53.8,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 46.1,
+          "peak_mem_mib": 46.1,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 129.5,
+          "peak_cpu_percent": 129.5,
+          "mean_mem_mib": 211.2,
+          "peak_mem_mib": 211.2,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    }
+  ],
+  "sleep": [
+    {
+      "run_id": "load-sleep-w1-r1",
+      "family": "sleep",
+      "workers": 1,
+      "active_worker_ids": [
+        "worker-487862d4"
+      ],
+      "jobs": 40,
+      "http_202": 40,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.196,
+      "e2e_wall_seconds": 21.505,
+      "submitted_jobs_per_sec": 204.3,
+      "completed_jobs_per_sec": 1.9,
+      "post_latency": {
+        "n": 40.0,
+        "p50": 76.2,
+        "p95": 136.5,
+        "p99": null
+      },
+      "queue": {
+        "n": 40.0,
+        "p50": 10746.5,
+        "p95": 19748.4,
+        "p99": null
+      },
+      "execution": {
+        "n": 40.0,
+        "p50": 505.0,
+        "p95": 506.0,
+        "p99": null
+      },
+      "e2e": {
+        "n": 40.0,
+        "p50": 11256.3,
+        "p95": 20258.1,
+        "p99": null
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 40
+      },
+      "worker_ids": [
+        "worker-487862d4"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 3.2,
+          "peak_cpu_percent": 16.1,
+          "mean_mem_mib": 73.9,
+          "peak_mem_mib": 82.7,
+          "samples": 7
+        },
+        "postgres": {
+          "mean_cpu_percent": 3.2,
+          "peak_cpu_percent": 5.3,
+          "mean_mem_mib": 44.2,
+          "peak_mem_mib": 46.5,
+          "samples": 7
+        },
+        "redis": {
+          "mean_cpu_percent": 1.0,
+          "peak_cpu_percent": 2.5,
+          "mean_mem_mib": 4.5,
+          "peak_mem_mib": 5.4,
+          "samples": 7
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.4,
+          "peak_cpu_percent": 0.4,
+          "mean_mem_mib": 53.9,
+          "peak_mem_mib": 54.2,
+          "samples": 7
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 46.0,
+          "peak_mem_mib": 46.1,
+          "samples": 7
+        },
+        "worker": {
+          "mean_cpu_percent": 2.2,
+          "peak_cpu_percent": 2.5,
+          "mean_mem_mib": 54.3,
+          "peak_mem_mib": 55.1,
+          "samples": 7
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-sleep-w1-r2",
+      "family": "sleep",
+      "workers": 1,
+      "active_worker_ids": [
+        "worker-487862d4"
+      ],
+      "jobs": 40,
+      "http_202": 40,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.189,
+      "e2e_wall_seconds": 22.304,
+      "submitted_jobs_per_sec": 211.8,
+      "completed_jobs_per_sec": 1.8,
+      "post_latency": {
+        "n": 40.0,
+        "p50": 79.1,
+        "p95": 104.5,
+        "p99": null
+      },
+      "queue": {
+        "n": 40.0,
+        "p50": 11285.8,
+        "p95": 20276.3,
+        "p99": null
+      },
+      "execution": {
+        "n": 40.0,
+        "p50": 505.0,
+        "p95": 506.0,
+        "p99": null
+      },
+      "e2e": {
+        "n": 40.0,
+        "p50": 11795.9,
+        "p95": 20787.1,
+        "p99": null
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 40
+      },
+      "worker_ids": [
+        "worker-487862d4"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 3.3,
+          "peak_cpu_percent": 23.3,
+          "mean_mem_mib": 70.6,
+          "peak_mem_mib": 71.2,
+          "samples": 8
+        },
+        "postgres": {
+          "mean_cpu_percent": 2.9,
+          "peak_cpu_percent": 5.5,
+          "mean_mem_mib": 47.0,
+          "peak_mem_mib": 47.5,
+          "samples": 8
+        },
+        "redis": {
+          "mean_cpu_percent": 1.0,
+          "peak_cpu_percent": 2.7,
+          "mean_mem_mib": 4.5,
+          "peak_mem_mib": 4.8,
+          "samples": 8
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.4,
+          "peak_cpu_percent": 0.4,
+          "mean_mem_mib": 54.0,
+          "peak_mem_mib": 54.2,
+          "samples": 8
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 46.0,
+          "peak_mem_mib": 46.6,
+          "samples": 8
+        },
+        "worker": {
+          "mean_cpu_percent": 1.8,
+          "peak_cpu_percent": 2.5,
+          "mean_mem_mib": 54.1,
+          "peak_mem_mib": 54.4,
+          "samples": 8
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-sleep-w1-r3",
+      "family": "sleep",
+      "workers": 1,
+      "active_worker_ids": [
+        "worker-487862d4"
+      ],
+      "jobs": 40,
+      "http_202": 40,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.174,
+      "e2e_wall_seconds": 21.467,
+      "submitted_jobs_per_sec": 230.5,
+      "completed_jobs_per_sec": 1.9,
+      "post_latency": {
+        "n": 40.0,
+        "p50": 74.0,
+        "p95": 100.4,
+        "p99": null
+      },
+      "queue": {
+        "n": 40.0,
+        "p50": 10494.1,
+        "p95": 19478.6,
+        "p99": null
+      },
+      "execution": {
+        "n": 40.0,
+        "p50": 505.0,
+        "p95": 506.0,
+        "p99": null
+      },
+      "e2e": {
+        "n": 40.0,
+        "p50": 11005.5,
+        "p95": 19987.8,
+        "p99": null
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 40
+      },
+      "worker_ids": [
+        "worker-487862d4"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 3.4,
+          "peak_cpu_percent": 22.7,
+          "mean_mem_mib": 71.4,
+          "peak_mem_mib": 78.9,
+          "samples": 8
+        },
+        "postgres": {
+          "mean_cpu_percent": 2.9,
+          "peak_cpu_percent": 5.2,
+          "mean_mem_mib": 47.4,
+          "peak_mem_mib": 48.3,
+          "samples": 8
+        },
+        "redis": {
+          "mean_cpu_percent": 0.7,
+          "peak_cpu_percent": 2.6,
+          "mean_mem_mib": 4.5,
+          "peak_mem_mib": 4.8,
+          "samples": 8
+        },
+        "publisher": {
+          "mean_cpu_percent": 1.9,
+          "peak_cpu_percent": 12.4,
+          "mean_mem_mib": 53.9,
+          "peak_mem_mib": 54.0,
+          "samples": 8
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 46.0,
+          "peak_mem_mib": 46.3,
+          "samples": 8
+        },
+        "worker": {
+          "mean_cpu_percent": 1.8,
+          "peak_cpu_percent": 2.1,
+          "mean_mem_mib": 54.3,
+          "peak_mem_mib": 54.7,
+          "samples": 8
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-sleep-w2-r1",
+      "family": "sleep",
+      "workers": 2,
+      "active_worker_ids": [
+        "worker-d8ce39df",
+        "worker-487862d4"
+      ],
+      "jobs": 40,
+      "http_202": 40,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.175,
+      "e2e_wall_seconds": 11.654,
+      "submitted_jobs_per_sec": 228.8,
+      "completed_jobs_per_sec": 3.4,
+      "post_latency": {
+        "n": 40.0,
+        "p50": 61.1,
+        "p95": 98.2,
+        "p99": null
+      },
+      "queue": {
+        "n": 40.0,
+        "p50": 5897.6,
+        "p95": 10394.0,
+        "p99": null
+      },
+      "execution": {
+        "n": 40.0,
+        "p50": 505.0,
+        "p95": 506.0,
+        "p99": null
+      },
+      "e2e": {
+        "n": 40.0,
+        "p50": 6408.9,
+        "p95": 10903.9,
+        "p99": null
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 40
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-d8ce39df"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.1,
+          "peak_mem_mib": 70.1,
+          "samples": 4
+        },
+        "postgres": {
+          "mean_cpu_percent": 2.9,
+          "peak_cpu_percent": 3.7,
+          "mean_mem_mib": 49.7,
+          "peak_mem_mib": 49.8,
+          "samples": 4
+        },
+        "redis": {
+          "mean_cpu_percent": 1.1,
+          "peak_cpu_percent": 2.8,
+          "mean_mem_mib": 4.5,
+          "peak_mem_mib": 4.7,
+          "samples": 4
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.4,
+          "peak_cpu_percent": 0.4,
+          "mean_mem_mib": 53.9,
+          "peak_mem_mib": 54.2,
+          "samples": 4
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 46.0,
+          "peak_mem_mib": 46.3,
+          "samples": 4
+        },
+        "worker": {
+          "mean_cpu_percent": 4.3,
+          "peak_cpu_percent": 5.0,
+          "mean_mem_mib": 106.7,
+          "peak_mem_mib": 107.2,
+          "samples": 4
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-sleep-w2-r2",
+      "family": "sleep",
+      "workers": 2,
+      "active_worker_ids": [
+        "worker-d8ce39df",
+        "worker-487862d4"
+      ],
+      "jobs": 40,
+      "http_202": 40,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.159,
+      "e2e_wall_seconds": 11.22,
+      "submitted_jobs_per_sec": 251.2,
+      "completed_jobs_per_sec": 3.6,
+      "post_latency": {
+        "n": 40.0,
+        "p50": 59.9,
+        "p95": 95.4,
+        "p99": null
+      },
+      "queue": {
+        "n": 40.0,
+        "p50": 5351.3,
+        "p95": 9858.2,
+        "p99": null
+      },
+      "execution": {
+        "n": 40.0,
+        "p50": 505.0,
+        "p95": 506.0,
+        "p99": null
+      },
+      "e2e": {
+        "n": 40.0,
+        "p50": 5860.3,
+        "p95": 10370.0,
+        "p99": null
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 40
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-d8ce39df"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 5.9,
+          "peak_cpu_percent": 22.9,
+          "mean_mem_mib": 70.6,
+          "peak_mem_mib": 71.1,
+          "samples": 4
+        },
+        "postgres": {
+          "mean_cpu_percent": 3.5,
+          "peak_cpu_percent": 5.1,
+          "mean_mem_mib": 49.5,
+          "peak_mem_mib": 49.8,
+          "samples": 4
+        },
+        "redis": {
+          "mean_cpu_percent": 1.1,
+          "peak_cpu_percent": 2.8,
+          "mean_mem_mib": 4.7,
+          "peak_mem_mib": 5.1,
+          "samples": 4
+        },
+        "publisher": {
+          "mean_cpu_percent": 3.0,
+          "peak_cpu_percent": 10.8,
+          "mean_mem_mib": 54.0,
+          "peak_mem_mib": 54.1,
+          "samples": 4
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 46.1,
+          "peak_mem_mib": 46.1,
+          "samples": 4
+        },
+        "worker": {
+          "mean_cpu_percent": 3.8,
+          "peak_cpu_percent": 4.6,
+          "mean_mem_mib": 106.4,
+          "peak_mem_mib": 106.6,
+          "samples": 4
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-sleep-w2-r3",
+      "family": "sleep",
+      "workers": 2,
+      "active_worker_ids": [
+        "worker-d8ce39df",
+        "worker-487862d4"
+      ],
+      "jobs": 40,
+      "http_202": 40,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.157,
+      "e2e_wall_seconds": 11.628,
+      "submitted_jobs_per_sec": 254.0,
+      "completed_jobs_per_sec": 3.4,
+      "post_latency": {
+        "n": 40.0,
+        "p50": 54.9,
+        "p95": 95.2,
+        "p99": null
+      },
+      "queue": {
+        "n": 40.0,
+        "p50": 5785.3,
+        "p95": 10295.7,
+        "p99": null
+      },
+      "execution": {
+        "n": 40.0,
+        "p50": 505.0,
+        "p95": 506.0,
+        "p99": null
+      },
+      "e2e": {
+        "n": 40.0,
+        "p50": 6295.1,
+        "p95": 10807.0,
+        "p99": null
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 40
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-d8ce39df"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 5.9,
+          "peak_cpu_percent": 23.1,
+          "mean_mem_mib": 70.2,
+          "peak_mem_mib": 70.5,
+          "samples": 4
+        },
+        "postgres": {
+          "mean_cpu_percent": 2.8,
+          "peak_cpu_percent": 3.3,
+          "mean_mem_mib": 49.9,
+          "peak_mem_mib": 50.3,
+          "samples": 4
+        },
+        "redis": {
+          "mean_cpu_percent": 0.5,
+          "peak_cpu_percent": 0.5,
+          "mean_mem_mib": 4.7,
+          "peak_mem_mib": 4.9,
+          "samples": 4
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.3,
+          "peak_cpu_percent": 0.4,
+          "mean_mem_mib": 53.8,
+          "peak_mem_mib": 54.0,
+          "samples": 4
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 46.1,
+          "peak_mem_mib": 46.3,
+          "samples": 4
+        },
+        "worker": {
+          "mean_cpu_percent": 3.9,
+          "peak_cpu_percent": 4.3,
+          "mean_mem_mib": 106.6,
+          "peak_mem_mib": 107.0,
+          "samples": 4
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-sleep-w4-r1",
+      "family": "sleep",
+      "workers": 4,
+      "active_worker_ids": [
+        "worker-a32f3069",
+        "worker-039a08aa",
+        "worker-d8ce39df",
+        "worker-487862d4"
+      ],
+      "jobs": 40,
+      "http_202": 40,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.162,
+      "e2e_wall_seconds": 6.325,
+      "submitted_jobs_per_sec": 247.5,
+      "completed_jobs_per_sec": 6.3,
+      "post_latency": {
+        "n": 40.0,
+        "p50": 65.1,
+        "p95": 102.9,
+        "p99": null
+      },
+      "queue": {
+        "n": 40.0,
+        "p50": 3013.1,
+        "p95": 5392.3,
+        "p99": null
+      },
+      "execution": {
+        "n": 40.0,
+        "p50": 505.0,
+        "p95": 506.0,
+        "p99": null
+      },
+      "e2e": {
+        "n": 40.0,
+        "p50": 3522.5,
+        "p95": 5902.6,
+        "p99": null
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 40
+      },
+      "worker_ids": [
+        "worker-039a08aa",
+        "worker-487862d4",
+        "worker-a32f3069",
+        "worker-d8ce39df"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.5,
+          "peak_mem_mib": 70.5,
+          "samples": 2
+        },
+        "postgres": {
+          "mean_cpu_percent": 4.0,
+          "peak_cpu_percent": 4.2,
+          "mean_mem_mib": 54.1,
+          "peak_mem_mib": 54.4,
+          "samples": 2
+        },
+        "redis": {
+          "mean_cpu_percent": 0.6,
+          "peak_cpu_percent": 0.6,
+          "mean_mem_mib": 4.5,
+          "peak_mem_mib": 4.9,
+          "samples": 2
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.4,
+          "peak_cpu_percent": 0.4,
+          "mean_mem_mib": 53.9,
+          "peak_mem_mib": 54.0,
+          "samples": 2
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 46.1,
+          "peak_mem_mib": 46.1,
+          "samples": 2
+        },
+        "worker": {
+          "mean_cpu_percent": 8.3,
+          "peak_cpu_percent": 9.1,
+          "mean_mem_mib": 211.3,
+          "peak_mem_mib": 211.7,
+          "samples": 2
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-sleep-w4-r2",
+      "family": "sleep",
+      "workers": 4,
+      "active_worker_ids": [
+        "worker-a32f3069",
+        "worker-039a08aa",
+        "worker-d8ce39df",
+        "worker-487862d4"
+      ],
+      "jobs": 40,
+      "http_202": 40,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.175,
+      "e2e_wall_seconds": 6.329,
+      "submitted_jobs_per_sec": 228.7,
+      "completed_jobs_per_sec": 6.3,
+      "post_latency": {
+        "n": 40.0,
+        "p50": 71.5,
+        "p95": 94.1,
+        "p99": null
+      },
+      "queue": {
+        "n": 40.0,
+        "p50": 3133.9,
+        "p95": 5524.8,
+        "p99": null
+      },
+      "execution": {
+        "n": 40.0,
+        "p50": 505.0,
+        "p95": 506.0,
+        "p99": null
+      },
+      "e2e": {
+        "n": 40.0,
+        "p50": 3644.5,
+        "p95": 6038.9,
+        "p99": null
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 40
+      },
+      "worker_ids": [
+        "worker-039a08aa",
+        "worker-487862d4",
+        "worker-a32f3069",
+        "worker-d8ce39df"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 1.9,
+          "peak_cpu_percent": 3.6,
+          "mean_mem_mib": 70.6,
+          "peak_mem_mib": 70.7,
+          "samples": 2
+        },
+        "postgres": {
+          "mean_cpu_percent": 4.3,
+          "peak_cpu_percent": 4.9,
+          "mean_mem_mib": 54.6,
+          "peak_mem_mib": 54.9,
+          "samples": 2
+        },
+        "redis": {
+          "mean_cpu_percent": 1.7,
+          "peak_cpu_percent": 2.8,
+          "mean_mem_mib": 5.1,
+          "peak_mem_mib": 5.6,
+          "samples": 2
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.4,
+          "peak_cpu_percent": 0.5,
+          "mean_mem_mib": 54.2,
+          "peak_mem_mib": 54.3,
+          "samples": 2
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 46.1,
+          "peak_mem_mib": 46.1,
+          "samples": 2
+        },
+        "worker": {
+          "mean_cpu_percent": 8.6,
+          "peak_cpu_percent": 9.1,
+          "mean_mem_mib": 211.3,
+          "peak_mem_mib": 211.7,
+          "samples": 2
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-sleep-w4-r3",
+      "family": "sleep",
+      "workers": 4,
+      "active_worker_ids": [
+        "worker-a32f3069",
+        "worker-039a08aa",
+        "worker-d8ce39df",
+        "worker-487862d4"
+      ],
+      "jobs": 40,
+      "http_202": 40,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.21,
+      "e2e_wall_seconds": 6.366,
+      "submitted_jobs_per_sec": 190.3,
+      "completed_jobs_per_sec": 6.3,
+      "post_latency": {
+        "n": 40.0,
+        "p50": 88.3,
+        "p95": 134.2,
+        "p99": null
+      },
+      "queue": {
+        "n": 40.0,
+        "p50": 3224.8,
+        "p95": 5633.7,
+        "p99": null
+      },
+      "execution": {
+        "n": 40.0,
+        "p50": 505.0,
+        "p95": 506.0,
+        "p99": null
+      },
+      "e2e": {
+        "n": 40.0,
+        "p50": 3735.7,
+        "p95": 6144.3,
+        "p99": null
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 40
+      },
+      "worker_ids": [
+        "worker-039a08aa",
+        "worker-487862d4",
+        "worker-a32f3069",
+        "worker-d8ce39df"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 3.0,
+          "peak_cpu_percent": 5.9,
+          "mean_mem_mib": 70.6,
+          "peak_mem_mib": 70.7,
+          "samples": 2
+        },
+        "postgres": {
+          "mean_cpu_percent": 5.3,
+          "peak_cpu_percent": 6.9,
+          "mean_mem_mib": 54.1,
+          "peak_mem_mib": 54.3,
+          "samples": 2
+        },
+        "redis": {
+          "mean_cpu_percent": 1.7,
+          "peak_cpu_percent": 2.8,
+          "mean_mem_mib": 5.1,
+          "peak_mem_mib": 5.1,
+          "samples": 2
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.3,
+          "peak_cpu_percent": 0.4,
+          "mean_mem_mib": 54.0,
+          "peak_mem_mib": 54.2,
+          "samples": 2
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 45.9,
+          "peak_mem_mib": 46.1,
+          "samples": 2
+        },
+        "worker": {
+          "mean_cpu_percent": 7.9,
+          "peak_cpu_percent": 8.3,
+          "mean_mem_mib": 211.2,
+          "peak_mem_mib": 211.3,
+          "samples": 2
+        }
+      },
+      "unpublished_after": 0
+    }
+  ],
+  "cpu": [
+    {
+      "run_id": "load-cpu-w1-r1",
+      "family": "cpu",
+      "workers": 1,
+      "active_worker_ids": [
+        "worker-487862d4"
+      ],
+      "jobs": 50,
+      "http_202": 50,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.192,
+      "e2e_wall_seconds": 2.249,
+      "submitted_jobs_per_sec": 260.5,
+      "completed_jobs_per_sec": 22.2,
+      "post_latency": {
+        "n": 50.0,
+        "p50": 67.8,
+        "p95": 97.4,
+        "p99": 101.5
+      },
+      "queue": {
+        "n": 50.0,
+        "p50": 1511.4,
+        "p95": 1895.7,
+        "p99": 1927.0
+      },
+      "execution": {
+        "n": 50.0,
+        "p50": 9.0,
+        "p95": 12.1,
+        "p99": 14.0
+      },
+      "e2e": {
+        "n": 50.0,
+        "p50": 1526.3,
+        "p95": 1911.6,
+        "p99": 1942.5
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 50
+      },
+      "worker_ids": [
+        "worker-487862d4"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.5,
+          "peak_mem_mib": 70.5,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 13.0,
+          "peak_cpu_percent": 13.0,
+          "mean_mem_mib": 48.1,
+          "peak_mem_mib": 48.1,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 1.4,
+          "peak_cpu_percent": 1.4,
+          "mean_mem_mib": 4.9,
+          "peak_mem_mib": 4.9,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.4,
+          "peak_cpu_percent": 0.4,
+          "mean_mem_mib": 53.8,
+          "peak_mem_mib": 53.8,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 45.8,
+          "peak_mem_mib": 45.8,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 76.8,
+          "peak_cpu_percent": 76.8,
+          "mean_mem_mib": 55.1,
+          "peak_mem_mib": 55.1,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-cpu-w1-r2",
+      "family": "cpu",
+      "workers": 1,
+      "active_worker_ids": [
+        "worker-487862d4"
+      ],
+      "jobs": 50,
+      "http_202": 50,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.207,
+      "e2e_wall_seconds": 2.268,
+      "submitted_jobs_per_sec": 241.6,
+      "completed_jobs_per_sec": 22.0,
+      "post_latency": {
+        "n": 50.0,
+        "p50": 66.2,
+        "p95": 105.0,
+        "p99": 110.2
+      },
+      "queue": {
+        "n": 50.0,
+        "p50": 1507.8,
+        "p95": 1926.6,
+        "p99": 1950.3
+      },
+      "execution": {
+        "n": 50.0,
+        "p50": 10.0,
+        "p95": 14.5,
+        "p99": 16.0
+      },
+      "e2e": {
+        "n": 50.0,
+        "p50": 1528.2,
+        "p95": 1941.4,
+        "p99": 1965.3
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 50
+      },
+      "worker_ids": [
+        "worker-487862d4"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 17.9,
+          "peak_cpu_percent": 17.9,
+          "mean_mem_mib": 70.5,
+          "peak_mem_mib": 70.5,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 20.0,
+          "peak_cpu_percent": 20.0,
+          "mean_mem_mib": 48.9,
+          "peak_mem_mib": 48.9,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 0.9,
+          "peak_cpu_percent": 0.9,
+          "mean_mem_mib": 4.6,
+          "peak_mem_mib": 4.6,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 16.9,
+          "peak_cpu_percent": 16.9,
+          "mean_mem_mib": 54.1,
+          "peak_mem_mib": 54.1,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 45.8,
+          "peak_mem_mib": 45.8,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 54.4,
+          "peak_mem_mib": 54.4,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-cpu-w1-r3",
+      "family": "cpu",
+      "workers": 1,
+      "active_worker_ids": [
+        "worker-487862d4"
+      ],
+      "jobs": 50,
+      "http_202": 50,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.207,
+      "e2e_wall_seconds": 2.264,
+      "submitted_jobs_per_sec": 242.1,
+      "completed_jobs_per_sec": 22.1,
+      "post_latency": {
+        "n": 50.0,
+        "p50": 70.0,
+        "p95": 102.5,
+        "p99": 106.0
+      },
+      "queue": {
+        "n": 50.0,
+        "p50": 1571.6,
+        "p95": 1970.9,
+        "p99": 2000.2
+      },
+      "execution": {
+        "n": 50.0,
+        "p50": 10.0,
+        "p95": 12.0,
+        "p99": 14.0
+      },
+      "e2e": {
+        "n": 50.0,
+        "p50": 1586.8,
+        "p95": 1988.2,
+        "p99": 2017.8
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 50
+      },
+      "worker_ids": [
+        "worker-487862d4"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.5,
+          "peak_mem_mib": 70.5,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 15.2,
+          "peak_cpu_percent": 15.2,
+          "mean_mem_mib": 46.9,
+          "peak_mem_mib": 46.9,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 3.5,
+          "peak_cpu_percent": 3.5,
+          "mean_mem_mib": 4.8,
+          "peak_mem_mib": 4.8,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 15.9,
+          "peak_cpu_percent": 15.9,
+          "mean_mem_mib": 54.1,
+          "peak_mem_mib": 54.1,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 45.8,
+          "peak_mem_mib": 45.8,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 71.0,
+          "peak_cpu_percent": 71.0,
+          "mean_mem_mib": 56.7,
+          "peak_mem_mib": 56.7,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-cpu-w2-r1",
+      "family": "cpu",
+      "workers": 2,
+      "active_worker_ids": [
+        "worker-ef18cedf",
+        "worker-487862d4"
+      ],
+      "jobs": 50,
+      "http_202": 50,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.217,
+      "e2e_wall_seconds": 1.866,
+      "submitted_jobs_per_sec": 230.9,
+      "completed_jobs_per_sec": 26.8,
+      "post_latency": {
+        "n": 50.0,
+        "p50": 73.0,
+        "p95": 101.2,
+        "p99": 104.5
+      },
+      "queue": {
+        "n": 50.0,
+        "p50": 1115.7,
+        "p95": 1294.8,
+        "p99": 1312.4
+      },
+      "execution": {
+        "n": 50.0,
+        "p50": 10.0,
+        "p95": 11.0,
+        "p99": 12.0
+      },
+      "e2e": {
+        "n": 50.0,
+        "p50": 1131.7,
+        "p95": 1312.2,
+        "p99": 1328.9
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 50
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-ef18cedf"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.5,
+          "peak_mem_mib": 70.5,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 14.3,
+          "peak_cpu_percent": 14.3,
+          "mean_mem_mib": 49.8,
+          "peak_mem_mib": 49.8,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 1.4,
+          "peak_cpu_percent": 1.4,
+          "mean_mem_mib": 4.6,
+          "peak_mem_mib": 4.6,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.3,
+          "peak_cpu_percent": 0.3,
+          "mean_mem_mib": 54.0,
+          "peak_mem_mib": 54.0,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 45.8,
+          "peak_mem_mib": 45.8,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 48.4,
+          "peak_cpu_percent": 48.4,
+          "mean_mem_mib": 108.7,
+          "peak_mem_mib": 108.7,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-cpu-w2-r2",
+      "family": "cpu",
+      "workers": 2,
+      "active_worker_ids": [
+        "worker-ef18cedf",
+        "worker-487862d4"
+      ],
+      "jobs": 50,
+      "http_202": 50,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.196,
+      "e2e_wall_seconds": 1.024,
+      "submitted_jobs_per_sec": 255.0,
+      "completed_jobs_per_sec": 48.8,
+      "post_latency": {
+        "n": 50.0,
+        "p50": 70.1,
+        "p95": 92.2,
+        "p99": 96.1
+      },
+      "queue": {
+        "n": 50.0,
+        "p50": 618.7,
+        "p95": 787.5,
+        "p99": 799.0
+      },
+      "execution": {
+        "n": 50.0,
+        "p50": 10.0,
+        "p95": 12.1,
+        "p99": 15.0
+      },
+      "e2e": {
+        "n": 50.0,
+        "p50": 634.0,
+        "p95": 802.2,
+        "p99": 813.6
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 50
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-ef18cedf"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.5,
+          "peak_mem_mib": 70.5,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 1.0,
+          "peak_cpu_percent": 1.0,
+          "mean_mem_mib": 50.2,
+          "peak_mem_mib": 50.2,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 0.5,
+          "peak_cpu_percent": 0.5,
+          "mean_mem_mib": 4.6,
+          "peak_mem_mib": 4.6,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 15.9,
+          "peak_cpu_percent": 15.9,
+          "mean_mem_mib": 53.9,
+          "peak_mem_mib": 53.9,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 45.8,
+          "peak_mem_mib": 45.8,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 0.4,
+          "peak_cpu_percent": 0.4,
+          "mean_mem_mib": 107.7,
+          "peak_mem_mib": 107.7,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-cpu-w2-r3",
+      "family": "cpu",
+      "workers": 2,
+      "active_worker_ids": [
+        "worker-ef18cedf",
+        "worker-487862d4"
+      ],
+      "jobs": 50,
+      "http_202": 50,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.201,
+      "e2e_wall_seconds": 1.849,
+      "submitted_jobs_per_sec": 248.5,
+      "completed_jobs_per_sec": 27.0,
+      "post_latency": {
+        "n": 50.0,
+        "p50": 71.2,
+        "p95": 97.7,
+        "p99": 101.8
+      },
+      "queue": {
+        "n": 50.0,
+        "p50": 1072.7,
+        "p95": 1240.7,
+        "p99": 1253.7
+      },
+      "execution": {
+        "n": 50.0,
+        "p50": 10.0,
+        "p95": 11.0,
+        "p99": 16.5
+      },
+      "e2e": {
+        "n": 50.0,
+        "p50": 1087.8,
+        "p95": 1256.2,
+        "p99": 1269.9
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 50
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-ef18cedf"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.5,
+          "peak_mem_mib": 70.5,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 14.2,
+          "peak_cpu_percent": 14.2,
+          "mean_mem_mib": 50.3,
+          "peak_mem_mib": 50.3,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 3.3,
+          "peak_cpu_percent": 3.3,
+          "mean_mem_mib": 4.9,
+          "peak_mem_mib": 4.9,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.4,
+          "peak_cpu_percent": 0.4,
+          "mean_mem_mib": 54.0,
+          "peak_mem_mib": 54.0,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 46.1,
+          "peak_mem_mib": 46.1,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 69.5,
+          "peak_cpu_percent": 69.5,
+          "mean_mem_mib": 107.6,
+          "peak_mem_mib": 107.6,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-cpu-w4-r1",
+      "family": "cpu",
+      "workers": 4,
+      "active_worker_ids": [
+        "worker-b3707c75",
+        "worker-6db385e3",
+        "worker-ef18cedf",
+        "worker-487862d4"
+      ],
+      "jobs": 50,
+      "http_202": 50,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.232,
+      "e2e_wall_seconds": 1.471,
+      "submitted_jobs_per_sec": 216.0,
+      "completed_jobs_per_sec": 34.0,
+      "post_latency": {
+        "n": 50.0,
+        "p50": 71.0,
+        "p95": 134.7,
+        "p99": 137.8
+      },
+      "queue": {
+        "n": 50.0,
+        "p50": 1003.7,
+        "p95": 1089.4,
+        "p99": 1094.8
+      },
+      "execution": {
+        "n": 50.0,
+        "p50": 10.0,
+        "p95": 16.0,
+        "p99": 17.0
+      },
+      "e2e": {
+        "n": 50.0,
+        "p50": 1018.7,
+        "p95": 1105.7,
+        "p99": 1110.9
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 50
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-6db385e3",
+        "worker-b3707c75",
+        "worker-ef18cedf"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.7,
+          "peak_mem_mib": 70.7,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 10.4,
+          "peak_cpu_percent": 10.4,
+          "mean_mem_mib": 54.0,
+          "peak_mem_mib": 54.0,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 3.3,
+          "peak_cpu_percent": 3.3,
+          "mean_mem_mib": 5.2,
+          "peak_mem_mib": 5.2,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.3,
+          "peak_cpu_percent": 0.3,
+          "mean_mem_mib": 53.8,
+          "peak_mem_mib": 53.8,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 46.1,
+          "peak_mem_mib": 46.1,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 56.5,
+          "peak_cpu_percent": 56.5,
+          "mean_mem_mib": 212.9,
+          "peak_mem_mib": 212.9,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-cpu-w4-r2",
+      "family": "cpu",
+      "workers": 4,
+      "active_worker_ids": [
+        "worker-b3707c75",
+        "worker-6db385e3",
+        "worker-ef18cedf",
+        "worker-487862d4"
+      ],
+      "jobs": 50,
+      "http_202": 50,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.206,
+      "e2e_wall_seconds": 1.857,
+      "submitted_jobs_per_sec": 243.1,
+      "completed_jobs_per_sec": 26.9,
+      "post_latency": {
+        "n": 50.0,
+        "p50": 71.8,
+        "p95": 100.0,
+        "p99": 102.0
+      },
+      "queue": {
+        "n": 50.0,
+        "p50": 1271.1,
+        "p95": 1328.0,
+        "p99": 1330.7
+      },
+      "execution": {
+        "n": 50.0,
+        "p50": 10.0,
+        "p95": 13.5,
+        "p99": 16.0
+      },
+      "e2e": {
+        "n": 50.0,
+        "p50": 1286.6,
+        "p95": 1344.6,
+        "p99": 1346.9
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 50
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-6db385e3",
+        "worker-b3707c75",
+        "worker-ef18cedf"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 18.7,
+          "peak_cpu_percent": 18.7,
+          "mean_mem_mib": 70.5,
+          "peak_mem_mib": 70.5,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 14.8,
+          "peak_cpu_percent": 14.8,
+          "mean_mem_mib": 54.0,
+          "peak_mem_mib": 54.0,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 1.0,
+          "peak_cpu_percent": 1.0,
+          "mean_mem_mib": 5.0,
+          "peak_mem_mib": 5.0,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.3,
+          "peak_cpu_percent": 0.3,
+          "mean_mem_mib": 53.8,
+          "peak_mem_mib": 53.8,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.2,
+          "peak_cpu_percent": 0.2,
+          "mean_mem_mib": 46.1,
+          "peak_mem_mib": 46.1,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 47.5,
+          "peak_cpu_percent": 47.5,
+          "mean_mem_mib": 212.8,
+          "peak_mem_mib": 212.8,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    },
+    {
+      "run_id": "load-cpu-w4-r3",
+      "family": "cpu",
+      "workers": 4,
+      "active_worker_ids": [
+        "worker-b3707c75",
+        "worker-6db385e3",
+        "worker-ef18cedf",
+        "worker-487862d4"
+      ],
+      "jobs": 50,
+      "http_202": 50,
+      "http_errors": 0,
+      "submit_wall_seconds": 0.208,
+      "e2e_wall_seconds": 1.04,
+      "submitted_jobs_per_sec": 239.9,
+      "completed_jobs_per_sec": 48.1,
+      "post_latency": {
+        "n": 50.0,
+        "p50": 71.1,
+        "p95": 98.0,
+        "p99": 103.7
+      },
+      "queue": {
+        "n": 50.0,
+        "p50": 447.0,
+        "p95": 511.9,
+        "p99": 515.8
+      },
+      "execution": {
+        "n": 50.0,
+        "p50": 11.0,
+        "p95": 17.5,
+        "p99": 18.0
+      },
+      "e2e": {
+        "n": 50.0,
+        "p50": 464.6,
+        "p95": 534.1,
+        "p99": 538.1
+      },
+      "valid_baseline": true,
+      "unexpected_retry_count": 0,
+      "status_counts": {
+        "SUCCEEDED": 50
+      },
+      "worker_ids": [
+        "worker-487862d4",
+        "worker-6db385e3",
+        "worker-b3707c75",
+        "worker-ef18cedf"
+      ],
+      "resources": {
+        "api": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 70.5,
+          "peak_mem_mib": 70.5,
+          "samples": 1
+        },
+        "postgres": {
+          "mean_cpu_percent": 32.3,
+          "peak_cpu_percent": 32.3,
+          "mean_mem_mib": 53.5,
+          "peak_mem_mib": 53.5,
+          "samples": 1
+        },
+        "redis": {
+          "mean_cpu_percent": 0.5,
+          "peak_cpu_percent": 0.5,
+          "mean_mem_mib": 4.5,
+          "peak_mem_mib": 4.5,
+          "samples": 1
+        },
+        "publisher": {
+          "mean_cpu_percent": 0.3,
+          "peak_cpu_percent": 0.3,
+          "mean_mem_mib": 54.0,
+          "peak_mem_mib": 54.0,
+          "samples": 1
+        },
+        "scheduler": {
+          "mean_cpu_percent": 0.1,
+          "peak_cpu_percent": 0.1,
+          "mean_mem_mib": 46.3,
+          "peak_mem_mib": 46.3,
+          "samples": 1
+        },
+        "worker": {
+          "mean_cpu_percent": 0.5,
+          "peak_cpu_percent": 0.5,
+          "mean_mem_mib": 212.3,
+          "peak_mem_mib": 212.3,
+          "samples": 1
+        }
+      },
+      "unpublished_after": 0
+    }
+  ],
+  "priority": {
+    "run_id": "load-priority-w4-r1",
+    "workers": 4,
+    "jobs": 100,
+    "submit_wall_seconds": 0.346,
+    "by_priority": [
+      {
+        "priority": "CRITICAL",
+        "n": 48,
+        "queue": {
+          "n": 48.0,
+          "p50": 6780.9,
+          "p95": 11326.0,
+          "p99": null
+        },
+        "e2e": {
+          "n": 48.0,
+          "p50": 7291.3,
+          "p95": 11836.4,
+          "p99": null
+        }
+      },
+      {
+        "priority": "HIGH",
+        "n": 20,
+        "queue": {
+          "n": 20.0,
+          "p50": 4311.4,
+          "p95": 8142.1,
+          "p99": null
+        },
+        "e2e": {
+          "n": 20.0,
+          "p50": 4822.6,
+          "p95": 8653.7,
+          "p99": null
+        }
+      },
+      {
+        "priority": "NORMAL",
+        "n": 16,
+        "queue": {
+          "n": 16.0,
+          "p50": 8376.1,
+          "p95": 11714.7,
+          "p99": null
+        },
+        "e2e": {
+          "n": 16.0,
+          "p50": 8886.7,
+          "p95": 12225.7,
+          "p99": null
+        }
+      },
+      {
+        "priority": "LOW",
+        "n": 16,
+        "queue": {
+          "n": 16.0,
+          "p50": 10658.4,
+          "p95": 12720.3,
+          "p99": null
+        },
+        "e2e": {
+          "n": 16.0,
+          "p50": 11170.4,
+          "p95": 13232.0,
+          "p99": null
+        }
+      }
+    ],
+    "low_progressed_while_higher_backlog": true,
+    "resources": {
+      "api": {
+        "mean_cpu_percent": 2.3,
+        "peak_cpu_percent": 11.0,
+        "mean_mem_mib": 73.0,
+        "peak_mem_mib": 82.2,
+        "samples": 5
+      },
+      "postgres": {
+        "mean_cpu_percent": 4.2,
+        "peak_cpu_percent": 6.5,
+        "mean_mem_mib": 54.4,
+        "peak_mem_mib": 55.1,
+        "samples": 5
+      },
+      "redis": {
+        "mean_cpu_percent": 1.0,
+        "peak_cpu_percent": 2.6,
+        "mean_mem_mib": 4.8,
+        "peak_mem_mib": 5.2,
+        "samples": 5
+      },
+      "publisher": {
+        "mean_cpu_percent": 0.4,
+        "peak_cpu_percent": 0.5,
+        "mean_mem_mib": 53.9,
+        "peak_mem_mib": 54.0,
+        "samples": 5
+      },
+      "scheduler": {
+        "mean_cpu_percent": 0.2,
+        "peak_cpu_percent": 0.2,
+        "mean_mem_mib": 46.1,
+        "peak_mem_mib": 46.1,
+        "samples": 5
+      },
+      "worker": {
+        "mean_cpu_percent": 7.1,
+        "peak_cpu_percent": 9.5,
+        "mean_mem_mib": 213.3,
+        "peak_mem_mib": 213.8,
+        "samples": 5
+      }
+    },
+    "valid_baseline": true
+  },
+  "scaling": {
+    "lightweight": [
+      {
+        "workers": 1,
+        "repeats": 3,
+        "median_completed_jobs_per_sec": 57.6,
+        "min_completed_jobs_per_sec": 50.2,
+        "max_completed_jobs_per_sec": 70.6,
+        "speedup_vs_1": 1.0,
+        "efficiency_vs_1": 1.0
+      },
+      {
+        "workers": 2,
+        "repeats": 3,
+        "median_completed_jobs_per_sec": 86.7,
+        "min_completed_jobs_per_sec": 83.1,
+        "max_completed_jobs_per_sec": 87.7,
+        "speedup_vs_1": 1.51,
+        "efficiency_vs_1": 0.75
+      },
+      {
+        "workers": 4,
+        "repeats": 3,
+        "median_completed_jobs_per_sec": 105.3,
+        "min_completed_jobs_per_sec": 104.4,
+        "max_completed_jobs_per_sec": 126.0,
+        "speedup_vs_1": 1.83,
+        "efficiency_vs_1": 0.46
+      }
+    ],
+    "sleep": [
+      {
+        "workers": 1,
+        "repeats": 3,
+        "median_completed_jobs_per_sec": 1.9,
+        "min_completed_jobs_per_sec": 1.8,
+        "max_completed_jobs_per_sec": 1.9,
+        "speedup_vs_1": 1.0,
+        "efficiency_vs_1": 1.0
+      },
+      {
+        "workers": 2,
+        "repeats": 3,
+        "median_completed_jobs_per_sec": 3.4,
+        "min_completed_jobs_per_sec": 3.4,
+        "max_completed_jobs_per_sec": 3.6,
+        "speedup_vs_1": 1.79,
+        "efficiency_vs_1": 0.89
+      },
+      {
+        "workers": 4,
+        "repeats": 3,
+        "median_completed_jobs_per_sec": 6.3,
+        "min_completed_jobs_per_sec": 6.3,
+        "max_completed_jobs_per_sec": 6.3,
+        "speedup_vs_1": 3.32,
+        "efficiency_vs_1": 0.83
+      }
+    ],
+    "cpu": [
+      {
+        "workers": 1,
+        "repeats": 3,
+        "median_completed_jobs_per_sec": 22.1,
+        "min_completed_jobs_per_sec": 22.0,
+        "max_completed_jobs_per_sec": 22.2,
+        "speedup_vs_1": 1.0,
+        "efficiency_vs_1": 1.0
+      },
+      {
+        "workers": 2,
+        "repeats": 3,
+        "median_completed_jobs_per_sec": 27.0,
+        "min_completed_jobs_per_sec": 26.8,
+        "max_completed_jobs_per_sec": 48.8,
+        "speedup_vs_1": 1.22,
+        "efficiency_vs_1": 0.61
+      },
+      {
+        "workers": 4,
+        "repeats": 3,
+        "median_completed_jobs_per_sec": 34.0,
+        "min_completed_jobs_per_sec": 26.9,
+        "max_completed_jobs_per_sec": 48.1,
+        "speedup_vs_1": 1.54,
+        "efficiency_vs_1": 0.38
+      }
+    ]
+  },
+  "final_health": {
+    "health": 200,
+    "ready": 200,
+    "degraded": false,
+    "summary": "HEALTHY"
+  },
+  "eight_workers": "skipped; 1/2/4 are the canonical scaling points",
+  "payload": {
+    "word_count_text_chars": 351,
+    "sleep_seconds": 0.5,
+    "prime_limit": 100000
+  }
+}

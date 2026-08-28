@@ -1,0 +1,3 @@
+# Canonical result files are tracked. Ignore local scratch only.
+benchmarks/load/results/*.tmp
+benchmarks/load/results/raw/
