@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -28,6 +29,18 @@ from job_platform.worker import processor
 from tests.integration.helpers import delayed_members, drain_outbox, process_next_message
 
 pytestmark = pytest.mark.integration
+
+
+@pytest.fixture
+def scheduler_logs(
+    redis_available: None,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> pytest.LogCaptureFixture:
+    # Alembic's migration logging configuration disables existing application loggers.
+    monkeypatch.setattr(promoter.logger, "disabled", False)
+    caplog.set_level(logging.INFO, logger=promoter.__name__)
+    return caplog
 
 
 async def retrying_job(
@@ -58,7 +71,11 @@ async def retrying_job(
 @pytest.mark.parametrize("equal_score", [False, True])
 @pytest.mark.parametrize("legacy", [False, True])
 async def test_new_retry_survives_old_promotion_cleanup(
-    client: AsyncClient, monkeypatch: pytest.MonkeyPatch, equal_score: bool, legacy: bool
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+    equal_score: bool,
+    legacy: bool,
+    scheduler_logs: pytest.LogCaptureFixture,
 ) -> None:
     """Pause after the actual PostgreSQL commit, then run/publish attempt two."""
     job_id, due = await retrying_job(client, monkeypatch)
@@ -67,6 +84,12 @@ async def test_new_retry_survives_old_promotion_cleanup(
     committed = asyncio.Event()
     resume = asyncio.Event()
     real_promote = promoter._promote_queued
+    cleanup_results: list[bool] = []
+
+    async def observe_cleanup(member):
+        removed = await remove_delayed(member)
+        cleanup_results.append(removed)
+        return removed
 
     async def pause_after_commit(session, job):
         event_id = await real_promote(session, job)
@@ -75,6 +98,7 @@ async def test_new_retry_survives_old_promotion_cleanup(
         return event_id
 
     monkeypatch.setattr(promoter, "_promote_queued", pause_after_commit)
+    monkeypatch.setattr(promoter, "remove_delayed", observe_cleanup)
     old_scheduler = asyncio.create_task(promoter.promote_due_jobs())
     try:
         await asyncio.wait_for(committed.wait(), timeout=5)
@@ -97,6 +121,9 @@ async def test_new_retry_survives_old_promotion_cleanup(
     assert (job_id, newer_due.timestamp()) in await delayed_members(), (
         "old scheduler cleanup deleted the newer retry schedule"
     )
+    assert cleanup_results == [False]
+    assert "event=delayed_cleanup_observation_stale " in scheduler_logs.text
+    assert "event=retry_delayed_stale_removed " not in scheduler_logs.text
     monkeypatch.setattr(promoter, "_promote_queued", real_promote)
     monkeypatch.setattr(promoter, "utcnow", lambda: newer_due + timedelta(microseconds=1))
     await promoter.promote_due_jobs()
@@ -128,7 +155,11 @@ async def durable_counts(job_id: str) -> tuple[int, int]:
 @pytest.mark.parametrize("running", [False, True])
 @pytest.mark.parametrize("equal_score", [False, True])
 async def test_stale_status_cleanup_preserves_new_retry(
-    client: AsyncClient, monkeypatch: pytest.MonkeyPatch, running: bool, equal_score: bool
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+    running: bool,
+    equal_score: bool,
+    scheduler_logs: pytest.LogCaptureFixture,
 ) -> None:
     job_id, due = await retrying_job(client, monkeypatch)
 
@@ -137,7 +168,15 @@ async def test_stale_status_cleanup_preserves_new_retry(
 
     monkeypatch.setattr(promoter, "remove_delayed", leave_old_member)
     await promoter.promote_due_jobs()
-    monkeypatch.setattr(promoter, "remove_delayed", remove_delayed)
+    cleanup_results: list[bool] = []
+
+    async def observe_cleanup(member):
+        removed = await remove_delayed(member)
+        cleanup_results.append(removed)
+        return removed
+
+    monkeypatch.setattr(promoter, "remove_delayed", observe_cleanup)
+    scheduler_logs.clear()
     handler_started = asyncio.Event()
     finish_handler = asyncio.Event()
     real_handler = processor.execute_handler
@@ -189,6 +228,9 @@ async def test_stale_status_cleanup_preserves_new_retry(
             await asyncio.wait_for(worker, 5)
     assert (job_id, newer_due.timestamp()) in await delayed_members()
     assert await durable_counts(job_id) == (2, 2)
+    assert cleanup_results == [False]
+    assert "event=delayed_cleanup_observation_stale " in scheduler_logs.text
+    assert "event=retry_delayed_stale_removed " not in scheduler_logs.text
 
 
 async def test_two_observations_dispatch_once(
@@ -245,7 +287,10 @@ async def test_failed_promotion_commit_keeps_schedule(
 
 @pytest.mark.parametrize("equal_score", [False, True])
 async def test_old_rescore_cannot_overwrite_next_retry(
-    client: AsyncClient, monkeypatch: pytest.MonkeyPatch, equal_score: bool
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+    equal_score: bool,
+    scheduler_logs: pytest.LogCaptureFixture,
 ) -> None:
     job_id, due = await retrying_job(client, monkeypatch)
     stale_due = due - timedelta(seconds=2)
@@ -253,11 +298,14 @@ async def test_old_rescore_cannot_overwrite_next_retry(
     monkeypatch.setattr(promoter, "utcnow", lambda: due - timedelta(seconds=1))
     observed = asyncio.Event()
     resume = asyncio.Event()
+    rescore_results: list[bool] = []
 
     async def paused_rescore(*args):
         observed.set()
         await resume.wait()
-        return await rescore_delayed(*args)
+        rescored = await rescore_delayed(*args)
+        rescore_results.append(rescored)
+        return rescored
 
     monkeypatch.setattr(promoter, "rescore_delayed", paused_rescore)
     old_scheduler = asyncio.create_task(promoter.promote_due_jobs())
@@ -278,6 +326,39 @@ async def test_old_rescore_cannot_overwrite_next_retry(
         resume.set()
         await asyncio.wait_for(old_scheduler, 5)
     assert (job_id, newer_due.timestamp()) in await delayed_members()
+    assert rescore_results == [False]
+    assert "event=delayed_rescore_observation_stale " in scheduler_logs.text
+    assert "event=scheduled_rescored " not in scheduler_logs.text
+    assert "event=retry_rescored " not in scheduler_logs.text
+
+
+@pytest.mark.parametrize("retrying", [False, True])
+async def test_matching_rescore_logs_success(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+    scheduler_logs: pytest.LogCaptureFixture,
+    retrying: bool,
+) -> None:
+    if retrying:
+        job_id, due = await retrying_job(client, monkeypatch)
+    else:
+        created = await client.post(
+            "/jobs",
+            json={"job_type": "word_count", "payload": {"text": "later"}, "delay_seconds": 30},
+        )
+        job_id = created.json()["id"]
+        due = datetime.fromisoformat(created.json()["run_after"])
+        await drain_outbox()
+    await get_redis().zadd(
+        get_settings().redis_delayed_zset, {job_id: (due - timedelta(seconds=2)).timestamp()}
+    )
+    monkeypatch.setattr(promoter, "utcnow", lambda: due - timedelta(seconds=1))
+    scheduler_logs.clear()
+    await promoter.promote_due_jobs()
+    assert (job_id, due.timestamp()) in await delayed_members()
+    success_event = "retry_rescored" if retrying else "scheduled_rescored"
+    assert f"event={success_event} " in scheduler_logs.text
+    assert "event=delayed_rescore_observation_stale " not in scheduler_logs.text
 
 
 @pytest.mark.parametrize("legacy", [False, True])

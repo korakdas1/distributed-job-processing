@@ -64,28 +64,30 @@ async def _promote_one(member: DelayedMember) -> None:
         if job is None:
             await session.rollback()
             log_event(logger, "retry_delayed_orphan", job_id=job_id)
-            await remove_delayed(member)
+            removed = await remove_delayed(member)
+            if not removed:
+                log_event(logger, "delayed_cleanup_observation_stale", job_id=job_id)
             return
         status = JobStatus(job.status)
         if status in TERMINAL_STATUSES:
             await session.rollback()
+            removed = await remove_delayed(member)
             log_event(
                 logger,
-                "retry_delayed_stale_removed",
+                "retry_delayed_stale_removed" if removed else "delayed_cleanup_observation_stale",
                 job_id=job_id,
                 status=status.value,
             )
-            await remove_delayed(member)
             return
         if status in {JobStatus.QUEUED, JobStatus.RUNNING}:
             await session.rollback()
+            removed = await remove_delayed(member)
             log_event(
                 logger,
-                "retry_delayed_stale_removed",
+                "retry_delayed_stale_removed" if removed else "delayed_cleanup_observation_stale",
                 job_id=job_id,
                 status=status.value,
             )
-            await remove_delayed(member)
             return
         if status is JobStatus.SCHEDULED:
             if job.run_after is None:
@@ -100,10 +102,10 @@ async def _promote_one(member: DelayedMember) -> None:
             if job.run_after > now:
                 run_after = job.run_after
                 await session.rollback()
-                await rescore_delayed(member, run_after)
+                rescored = await rescore_delayed(member, run_after)
                 log_event(
                     logger,
-                    "scheduled_rescored",
+                    "scheduled_rescored" if rescored else "delayed_rescore_observation_stale",
                     job_id=job_id,
                     run_after=run_after.isoformat(),
                 )
@@ -134,10 +136,10 @@ async def _promote_one(member: DelayedMember) -> None:
             if job.next_retry_at > now:
                 next_retry_at = job.next_retry_at
                 await session.rollback()
-                await rescore_delayed(member, next_retry_at)
+                rescored = await rescore_delayed(member, next_retry_at)
                 log_event(
                     logger,
-                    "retry_rescored",
+                    "retry_rescored" if rescored else "delayed_rescore_observation_stale",
                     job_id=job_id,
                     next_retry_at=next_retry_at.isoformat(),
                 )
@@ -165,7 +167,9 @@ async def _promote_one(member: DelayedMember) -> None:
             )
             return
     try:
-        await remove_delayed(member)
+        removed = await remove_delayed(member)
+        if not removed:
+            log_event(logger, "delayed_cleanup_observation_stale", job_id=job_id)
     except RedisError:
         log_event(logger, "retry_zrem_failed", job_id=job_id)
         logger.exception("ZREM after delayed promotion failed; later pass will drop stale member")
@@ -179,13 +183,16 @@ async def promote_due_jobs(*, limit: int | None = None) -> int:
     handled = 0
     for member in due:
         if member.job_id is None:
+            removed = await remove_delayed_member(member)
             log_event(
                 logger,
-                "malformed_delayed_member_removed",
+                "malformed_delayed_member_removed"
+                if removed
+                else "delayed_cleanup_observation_stale",
                 member=member.raw,
             )
-            logger.warning("Removing malformed jobs:delayed member %r", member.raw)
-            await remove_delayed_member(member)
+            if removed:
+                logger.warning("Removed malformed jobs:delayed member %r", member.raw)
             handled += 1
             continue
         await _promote_one(member)
