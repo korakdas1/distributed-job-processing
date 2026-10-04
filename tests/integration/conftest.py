@@ -41,6 +41,7 @@ for _name in (
 from job_platform.core.config import get_settings  # noqa: E402
 from job_platform.db.session import dispose_engine  # noqa: E402
 from job_platform.queue.client import dispose_redis  # noqa: E402
+from tests.disposable_infrastructure import load_infrastructure  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 TEST_DB = "job_platform_test"
@@ -110,8 +111,14 @@ def _flush_test_redis() -> None:
 
 
 @pytest.fixture(scope="session")
-def test_database() -> Iterator[None]:
+def test_database(pytestconfig: pytest.Config) -> Iterator[None]:
     _assert_safe_test_target()
+    manifest = pytestconfig.getoption("--disposable-manifest")
+    if manifest is not None:
+        # Also validate ordinary integration tests run against disposable infrastructure.
+        infrastructure = load_infrastructure(manifest, opted_in=True)
+        infrastructure.check_targets(get_settings())
+        infrastructure.verify()
     with _admin_connect() as conn:
         exists = conn.execute(
             "SELECT 1 FROM pg_database WHERE datname = %s",

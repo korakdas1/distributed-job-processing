@@ -18,6 +18,7 @@ from job_platform.core.config import get_settings
 from job_platform.models.outbox import OUTBOX_EVENT_JOB_DISPATCH
 from job_platform.queue.delayed import remove_delayed
 from job_platform.scheduler.promoter import promote_due_jobs
+from tests.disposable_infrastructure import DisposableInfrastructure
 from tests.integration.helpers import delayed_members, drain_outbox, process_next_message
 from tests.integration.process_harness import (
     ProcessCluster,
@@ -99,14 +100,15 @@ async def test_scheduler_crash_after_commit_before_zrem(
     assert dispatch_count[0] == 2
 
 
+@pytest.mark.disruptive
 def test_scheduler_starts_while_redis_is_down_and_resumes_without_restart(
-    redis_available: None, tmp_path: Path
+    disposable_infrastructure: DisposableInfrastructure, redis_available: None, tmp_path: Path
 ) -> None:
     cluster = ProcessCluster(tmp_path)
     redis_stopped = False
     try:
         cluster.start_api()
-        stop_project_redis()
+        stop_project_redis(disposable_infrastructure)
         redis_stopped = True
         scheduler = cluster.start_scheduler()
         time.sleep(1.5)
@@ -117,7 +119,7 @@ def test_scheduler_starts_while_redis_is_down_and_resumes_without_restart(
         assert cluster.scheduler_alive()
         assert cluster.scheduler_pid() == scheduler_pid
 
-        start_project_redis()
+        start_project_redis(disposable_infrastructure)
         redis_stopped = False
         assert cluster.scheduler_pid() == scheduler_pid
         assert cluster.scheduler_alive()
@@ -127,7 +129,7 @@ def test_scheduler_starts_while_redis_is_down_and_resumes_without_restart(
     finally:
         cluster.stop_all()
         if redis_stopped:
-            start_project_redis()
+            start_project_redis(disposable_infrastructure)
 
 
 def test_retry_exhaustion_with_real_processes(redis_available: None, tmp_path: Path) -> None:

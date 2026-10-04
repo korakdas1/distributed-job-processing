@@ -13,6 +13,7 @@ import redis as redis_sync
 
 from job_platform.core.config import get_settings
 from job_platform.worker.heartbeat import heartbeat_key
+from tests.disposable_infrastructure import DisposableInfrastructure
 from tests.integration.process_harness import (
     ProcessCluster,
     start_project_postgres,
@@ -301,7 +302,10 @@ def test_worker_restart_creates_new_registry_row(redis_available: None, tmp_path
         cluster.stop_all()
 
 
-def test_redis_outage_lists_unknown_then_resumes(redis_available: None, tmp_path: Path) -> None:
+@pytest.mark.disruptive
+def test_redis_outage_lists_unknown_then_resumes(
+    disposable_infrastructure: DisposableInfrastructure, redis_available: None, tmp_path: Path
+) -> None:
     cluster = ProcessCluster(tmp_path)
     redis_stopped = False
     try:
@@ -311,7 +315,7 @@ def test_redis_outage_lists_unknown_then_resumes(redis_available: None, tmp_path
         pid = cluster.worker_pid(0)
         with httpx.Client(base_url=cluster.base_url, timeout=10.0) as http:
             _wait_worker(http, worker_id, "ACTIVE")
-            stop_project_redis()
+            stop_project_redis(disposable_infrastructure)
             redis_stopped = True
             time.sleep(0.4)
             assert cluster.worker_alive(0)
@@ -320,7 +324,7 @@ def test_redis_outage_lists_unknown_then_resumes(redis_available: None, tmp_path
             assert body["liveness_available"] is False
             item = next(row for row in body["items"] if row["id"] == worker_id)
             assert item["status"] == "UNKNOWN"
-            start_project_redis()
+            start_project_redis(disposable_infrastructure)
             redis_stopped = False
             recovered = _wait_worker(http, worker_id, "ACTIVE", timeout=15.0)
             assert recovered["is_alive"] is True
@@ -329,14 +333,17 @@ def test_redis_outage_lists_unknown_then_resumes(redis_available: None, tmp_path
     finally:
         cluster.stop_all()
         if redis_stopped:
-            start_project_redis()
+            start_project_redis(disposable_infrastructure)
 
 
-def test_worker_starts_while_postgres_is_down(redis_available: None, tmp_path: Path) -> None:
+@pytest.mark.disruptive
+def test_worker_starts_while_postgres_is_down(
+    disposable_infrastructure: DisposableInfrastructure, redis_available: None, tmp_path: Path
+) -> None:
     cluster = ProcessCluster(tmp_path)
     postgres_stopped = False
     try:
-        stop_project_postgres()
+        stop_project_postgres(disposable_infrastructure)
         postgres_stopped = True
         worker = cluster.start_worker(0)
         time.sleep(1.5)
@@ -345,7 +352,7 @@ def test_worker_starts_while_postgres_is_down(redis_available: None, tmp_path: P
         logs = worker.log_path.read_text(encoding="utf-8")
         assert "event=worker_ready" not in logs
         wait_log_contains(worker.log_path, "event=worker_registration_failed", timeout=10.0)
-        start_project_postgres()
+        start_project_postgres(disposable_infrastructure)
         postgres_stopped = False
         wait_log_contains(worker.log_path, "event=worker_ready", timeout=20.0)
         assert worker.proc.pid == pid
@@ -371,7 +378,7 @@ def test_worker_starts_while_postgres_is_down(redis_available: None, tmp_path: P
     finally:
         cluster.stop_all()
         if postgres_stopped:
-            start_project_postgres()
+            start_project_postgres(disposable_infrastructure)
 
 
 def test_last_seen_at_advances(redis_available: None, tmp_path: Path) -> None:

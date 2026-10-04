@@ -18,6 +18,7 @@ from job_platform.core.enums import JobPriority
 from job_platform.db.session import dispose_engine, get_session_factory
 from job_platform.outbox.publisher import publish_available
 from job_platform.queue.streams import publish_job_id
+from tests.disposable_infrastructure import DisposableInfrastructure
 from tests.integration.helpers import drain_outbox, process_next_message, stream_entries
 from tests.integration.process_harness import (
     ProcessCluster,
@@ -295,14 +296,15 @@ def test_publisher_and_worker_run_without_api(redis_available: None, tmp_path: P
         cluster.stop_all()
 
 
+@pytest.mark.disruptive
 def test_publisher_starts_while_redis_is_down_and_resumes_without_restart(
-    redis_available: None, tmp_path: Path
+    disposable_infrastructure: DisposableInfrastructure, redis_available: None, tmp_path: Path
 ) -> None:
     cluster = ProcessCluster(tmp_path)
     redis_stopped = False
     try:
         cluster.start_api()
-        stop_project_redis()
+        stop_project_redis(disposable_infrastructure)
         redis_stopped = True
         publisher = cluster.start_publisher()
         time.sleep(1.5)
@@ -335,7 +337,7 @@ def test_publisher_starts_while_redis_is_down_and_resumes_without_restart(
         assert cluster.publisher_alive()
         assert cluster.publisher_pid() == publisher_pid
 
-        start_project_redis()
+        start_project_redis(disposable_infrastructure)
         redis_stopped = False
         assert cluster.publisher_pid() == publisher_pid
         assert cluster.publisher_alive()
@@ -374,7 +376,7 @@ def test_publisher_starts_while_redis_is_down_and_resumes_without_restart(
     finally:
         cluster.stop_all()
         if redis_stopped:
-            start_project_redis()
+            start_project_redis(disposable_infrastructure)
 
 
 def test_message_published_before_first_worker_is_still_consumed(
