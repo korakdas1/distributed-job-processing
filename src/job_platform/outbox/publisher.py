@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from job_platform.core.clock import utcnow
 from job_platform.core.config import get_settings
+from job_platform.core.enums import JobStatus
 from job_platform.core.logging import log_event
 from job_platform.db.session import get_session_factory
 from job_platform.models.job import Job
@@ -89,30 +90,43 @@ async def _dispatch_ready(session: AsyncSession, event: OutboxEvent) -> str:
     return message_id
 
 
+async def _publish_schedule(session: AsyncSession, event: OutboxEvent) -> None:
+    payload = _payload(event)
+    run_at = _run_at_from_payload(payload, event_type=event.event_type)
+    # Serialize publication with durable round transitions. A retry outbox can
+    # be replayed after its Redis write but after a later attempt has committed.
+    # UUID identity alone prevents stale cleanup, not stale publication.
+    job = await session.scalar(select(Job).where(Job.id == event.job_id).with_for_update())
+    if job is None:
+        raise OutboxRoutingError(f"Schedule {event.id} references missing job {event.job_id}")
+    initial = event.event_type == OUTBOX_EVENT_JOB_INITIAL_SCHEDULE
+    current = (
+        job.status == JobStatus.SCHEDULED.value
+        and job.attempt_count == 0
+        and job.run_after == run_at
+        if initial
+        else job.status == JobStatus.RETRYING.value
+        and job.attempt_count == payload.get("failed_attempt")
+        and job.next_retry_at == run_at
+    )
+    if not current:
+        log_event(logger, "schedule_event_obsolete", event_id=event.id, job_id=event.job_id)
+        return
+    await schedule_delayed(event.job_id, run_at, outbox_event_id=event.id)
+    log_event(
+        logger,
+        "initial_schedule_published" if initial else "retry_schedule_published",
+        event_id=event.id,
+        job_id=event.job_id,
+        run_at=run_at.isoformat(),
+    )
+
+
 async def _route_event(session: AsyncSession, event: OutboxEvent) -> str | None:
     if event.event_type == OUTBOX_EVENT_JOB_DISPATCH:
         return await _dispatch_ready(session, event)
-    if event.event_type == OUTBOX_EVENT_JOB_INITIAL_SCHEDULE:
-        run_at = _run_at_from_payload(_payload(event), event_type=event.event_type)
-        await schedule_delayed(event.job_id, run_at)
-        log_event(
-            logger,
-            "initial_schedule_published",
-            event_id=event.id,
-            job_id=event.job_id,
-            run_after=run_at.isoformat(),
-        )
-        return None
-    if event.event_type == OUTBOX_EVENT_JOB_RETRY_SCHEDULE:
-        run_at = _run_at_from_payload(_payload(event), event_type=event.event_type)
-        await schedule_delayed(event.job_id, run_at)
-        log_event(
-            logger,
-            "retry_schedule_published",
-            event_id=event.id,
-            job_id=event.job_id,
-            next_retry_at=run_at.isoformat(),
-        )
+    if event.event_type in {OUTBOX_EVENT_JOB_INITIAL_SCHEDULE, OUTBOX_EVENT_JOB_RETRY_SCHEDULE}:
+        await _publish_schedule(session, event)
         return None
     if event.event_type == OUTBOX_EVENT_JOB_DEAD_LETTER:
         payload = _payload(event)

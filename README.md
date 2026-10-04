@@ -92,6 +92,22 @@ Publisher, scheduler, and workers are internal Compose services. In the secure p
 
 **Publisher.** An independent process reads unpublished outbox rows and `XADD`s / `ZADD`s Redis.
 
+**Delayed schedule identity.** `jobs:delayed` keeps job-ID members and timestamp scores.
+The companion hash `jobs:delayed:generations` stores each scheduling outbox event's ID.
+The scheduler reads member, score, and ID atomically; cleanup and rescore mutate only
+that exact observation. Equal scores from different retries therefore remain distinct.
+Duplicate publication of the same event retains its identity. The publisher locks the
+job row and checks its current status, attempt number, and due time before writing;
+obsolete scheduling events are consumed without overwriting Redis. Promotion still
+commits the job transition and dispatch outbox before cleanup, and creates no attempt.
+
+Existing members without generation metadata remain readable and are removed or
+rescored only while their observed score and missing metadata still match. No database
+migration or ZSET conversion is required. When upgrading, stop the old publisher and
+scheduler before starting the updated versions; mixed old/new writers are not safe.
+The companion hash must stay with its ZSET (no independent expiry or manual edits).
+Its entry is removed with the matching schedule. This does not reconstruct lost Redis data.
+
 **Worker.** Claim a Redis delivery → inspect PostgreSQL → acquire ownership (`QUEUED` → `RUNNING`) → execute an allowlisted handler → persist attempt/result → `XACK`. Persist-before-XACK is the crash-safety rule.
 
 The transactional outbox closes the “Postgres committed, Redis never published” gap. It does **not** make publication or execution exactly-once.
