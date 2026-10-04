@@ -321,11 +321,12 @@ This is not “fully secure,” not OWASP-certified, and not a multi-user identi
 
 ## Testing
 
-Safe regular checks (host; they do not destroy development volumes):
+Regular checks (host):
 
 ```bash
 source .venv/bin/activate
-pytest
+pytest tests/unit
+pytest tests/integration
 ruff check .
 ruff format --check .
 mypy
@@ -341,7 +342,29 @@ npm run test
 npm run build
 ```
 
-Isolated Docker suites used during development each used their own Compose project prefix and may `down -v` **that** project only. Ordinary `pytest` does not start those stacks.
+Ordinary `pytest` and `pytest tests/integration` automatically skip tests marked
+`disruptive`. They never stop or restart PostgreSQL/Redis services. Ordinary
+integration tests still require local PostgreSQL (`job_platform_test`) and Redis
+DB 15, and clear those test stores between tests.
+
+Run outage tests with Docker and `docker-compose` available:
+
+```bash
+python -m tests.run_disruptive
+# Or select one outage test:
+python -m tests.run_disruptive tests/integration/test_worker_registry.py::test_worker_starts_while_postgres_is_down
+```
+
+The runner creates a unique `job-platform-disruptive-` project with only
+PostgreSQL and Redis, random loopback ports, disposable credentials, and isolated
+storage. It supplies `--run-disruptive` and a private infrastructure manifest.
+The flag alone cannot authorize service control. Helpers check effective targets,
+Docker ownership labels, container identities, ports, mounts, and network membership
+before acting on exact container IDs. The development Compose project is never stopped.
+Guarded cleanup runs even after test failure and verifies that no owned containers,
+volumes, or networks remain. Diagnostics are saved outside the repository; ambiguous
+ownership refuses cleanup and reports the failure for inspection. Run these tests
+serially; concurrent outage tests must not share an infrastructure instance.
 
 Do **not** run `docker-compose down -v` against the development project.
 

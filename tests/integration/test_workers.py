@@ -11,6 +11,7 @@ from httpx import AsyncClient
 
 from job_platform.core.config import get_settings
 from job_platform.worker.heartbeat import heartbeat_key
+from tests.disposable_infrastructure import DisposableInfrastructure
 from tests.integration.process_harness import start_project_redis, stop_project_redis
 
 pytestmark = pytest.mark.integration
@@ -116,12 +117,15 @@ async def test_malformed_heartbeat_does_not_500(client: AsyncClient) -> None:
     assert item["heartbeat_at"] is None
 
 
-async def test_workers_unknown_when_redis_down(client: AsyncClient) -> None:
+@pytest.mark.disruptive
+async def test_workers_unknown_when_redis_down(
+    disposable_infrastructure: DisposableInfrastructure, client: AsyncClient
+) -> None:
     _insert_worker(worker_id="worker-unknown1")
     _insert_worker(worker_id="worker-stopped3", stopped=True)
     redis_stopped = False
     try:
-        stop_project_redis()
+        stop_project_redis(disposable_infrastructure)
         redis_stopped = True
         response = await client.get("/workers")
         assert response.status_code == 200
@@ -134,4 +138,4 @@ async def test_workers_unknown_when_redis_down(client: AsyncClient) -> None:
         assert by_id["worker-stopped3"]["is_alive"] is False
     finally:
         if redis_stopped:
-            start_project_redis()
+            start_project_redis(disposable_infrastructure)

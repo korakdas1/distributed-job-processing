@@ -11,6 +11,7 @@ import redis as redis_sync
 
 from job_platform.core.config import get_settings
 from job_platform.queue.priority import ready_streams
+from tests.disposable_infrastructure import DisposableInfrastructure
 from tests.integration.process_harness import (
     ProcessCluster,
     start_project_redis,
@@ -21,14 +22,15 @@ from tests.integration.process_harness import (
 pytestmark = pytest.mark.integration
 
 
+@pytest.mark.disruptive
 def test_worker_starts_while_redis_is_down_and_resumes_without_restart(
-    redis_available: None, tmp_path: Path
+    disposable_infrastructure: DisposableInfrastructure, redis_available: None, tmp_path: Path
 ) -> None:
     cluster = ProcessCluster(tmp_path)
     redis_stopped = False
     try:
         cluster.start_api()
-        stop_project_redis()
+        stop_project_redis(disposable_infrastructure)
         redis_stopped = True
         worker = cluster.start_worker(0)
         time.sleep(1.5)
@@ -40,7 +42,7 @@ def test_worker_starts_while_redis_is_down_and_resumes_without_restart(
         assert worker.proc.poll() is None
         assert worker.proc.pid == pid
 
-        start_project_redis()
+        start_project_redis(disposable_infrastructure)
         redis_stopped = False
         wait_log_contains(worker.log_path, "event=worker_ready", timeout=15.0)
         assert worker.proc.pid == pid
@@ -84,4 +86,4 @@ def test_worker_starts_while_redis_is_down_and_resumes_without_restart(
     finally:
         cluster.stop_all()
         if redis_stopped:
-            start_project_redis()
+            start_project_redis(disposable_infrastructure)

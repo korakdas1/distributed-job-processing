@@ -17,6 +17,7 @@ import psycopg
 import redis as redis_sync
 
 from job_platform.core.config import get_settings
+from tests.disposable_infrastructure import DisposableInfrastructure, UnsafeInfrastructure
 
 ROOT = Path(__file__).resolve().parents[2]
 _WORKER_ID_RE = re.compile(r"worker_id=(worker-[0-9a-f]{8})")
@@ -128,21 +129,17 @@ def _redis_ping() -> bool:
         client.close()
 
 
-def _compose(*args: str) -> None:
-    """Operate on this repository's Compose project only. Never prune or down -v."""
-    subprocess.run(
-        ["docker-compose", "-p", ROOT.name, *args],
-        cwd=ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-        env={**os.environ, "COMPOSE_PROJECT_NAME": ROOT.name},
-    )
+def _control(infrastructure: DisposableInfrastructure | None, action: str, service: str) -> None:
+    if infrastructure is None:
+        raise UnsafeInfrastructure("An explicit disposable infrastructure context is required")
+    infrastructure.control(action, service, get_settings())
 
 
-def stop_project_redis() -> None:
-    """Stop only this project's Compose Redis service. Volumes are kept."""
-    _compose("stop", "redis")
+def stop_project_redis(
+    infrastructure: DisposableInfrastructure | None = None,
+) -> None:
+    """Stop only the validated disposable Redis service. Volumes are kept."""
+    _control(infrastructure, "stop", "redis")
     deadline = time.monotonic() + 15.0
     while time.monotonic() < deadline:
         if not _redis_ping():
@@ -151,9 +148,11 @@ def stop_project_redis() -> None:
     raise AssertionError("Compose redis service did not stop accepting connections")
 
 
-def start_project_redis() -> None:
-    """Start this project's Compose Redis service and wait until PING succeeds."""
-    _compose("start", "redis")
+def start_project_redis(
+    infrastructure: DisposableInfrastructure | None = None,
+) -> None:
+    """Start the validated disposable Redis service and wait until PING succeeds."""
+    _control(infrastructure, "start", "redis")
     deadline = time.monotonic() + 20.0
     while time.monotonic() < deadline:
         if _redis_ping():
@@ -179,9 +178,11 @@ def _postgres_ready() -> bool:
         return False
 
 
-def stop_project_postgres() -> None:
-    """Stop only this project's Compose PostgreSQL service. Volumes are kept."""
-    _compose("stop", "postgres")
+def stop_project_postgres(
+    infrastructure: DisposableInfrastructure | None = None,
+) -> None:
+    """Stop only the validated disposable PostgreSQL service. Volumes are kept."""
+    _control(infrastructure, "stop", "postgres")
     deadline = time.monotonic() + 15.0
     while time.monotonic() < deadline:
         if not _postgres_ready():
@@ -190,9 +191,11 @@ def stop_project_postgres() -> None:
     raise AssertionError("Compose postgres service did not stop accepting connections")
 
 
-def start_project_postgres() -> None:
-    """Start this project's Compose PostgreSQL service and wait until SELECT 1 succeeds."""
-    _compose("start", "postgres")
+def start_project_postgres(
+    infrastructure: DisposableInfrastructure | None = None,
+) -> None:
+    """Start the validated disposable PostgreSQL service and wait until SELECT 1 succeeds."""
+    _control(infrastructure, "start", "postgres")
     deadline = time.monotonic() + 30.0
     while time.monotonic() < deadline:
         if _postgres_ready():

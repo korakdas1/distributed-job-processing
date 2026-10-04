@@ -16,6 +16,7 @@ from job_platform.core.config import get_settings
 from job_platform.models.outbox import OUTBOX_EVENT_JOB_INITIAL_SCHEDULE
 from job_platform.queue.client import get_redis
 from job_platform.scheduler.promoter import promote_due_jobs
+from tests.disposable_infrastructure import DisposableInfrastructure
 from tests.integration.helpers import delayed_members, drain_outbox, stream_entries
 from tests.integration.process_harness import (
     ProcessCluster,
@@ -127,14 +128,15 @@ async def test_max_initial_delay_accepted(client: AsyncClient) -> None:
     assert response.json()["status"] == "SCHEDULED"
 
 
+@pytest.mark.disruptive
 def test_delayed_post_survives_redis_down_and_executes_after_restore(
-    redis_available: None, tmp_path: Path
+    disposable_infrastructure: DisposableInfrastructure, redis_available: None, tmp_path: Path
 ) -> None:
     cluster = ProcessCluster(tmp_path)
     redis_stopped = False
     try:
         cluster.start_api()
-        stop_project_redis()
+        stop_project_redis(disposable_infrastructure)
         redis_stopped = True
         with httpx.Client(base_url=cluster.base_url, timeout=10.0) as client:
             created = client.post(
@@ -166,7 +168,7 @@ def test_delayed_post_survives_redis_down_and_executes_after_restore(
             time.sleep(remaining + 0.05)
         cluster.start_publisher()
         cluster.start_scheduler()
-        start_project_redis()
+        start_project_redis(disposable_infrastructure)
         redis_stopped = False
         cluster.start_workers(1)
         deadline = time.monotonic() + 20.0
@@ -188,7 +190,7 @@ def test_delayed_post_survives_redis_down_and_executes_after_restore(
     finally:
         cluster.stop_all()
         if redis_stopped:
-            start_project_redis()
+            start_project_redis(disposable_infrastructure)
 
 
 def test_delayed_job_survives_api_and_scheduler_restart(
