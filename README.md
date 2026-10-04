@@ -110,6 +110,12 @@ Its entry is removed with the matching schedule. This does not reconstruct lost 
 
 **Worker.** Claim a Redis delivery → inspect PostgreSQL → acquire ownership (`QUEUED` → `RUNNING`) → execute an allowlisted handler → persist attempt/result → `XACK`. Persist-before-XACK is the crash-safety rule.
 
+Workers automatically recreate missing ready-stream consumer groups while running,
+starting at ID `0` so retained entries remain consumable. Concurrent repair is safe.
+This repairs group existence only: deleted ready deliveries, missing delayed schedules,
+and abandoned RUNNING attempts after delivery/PEL loss still require separate recovery.
+Retained RUNNING deliveries continue to follow existing ownership and lease rules.
+
 The transactional outbox closes the “Postgres committed, Redis never published” gap. It does **not** make publication or execution exactly-once.
 
 ## At-Least-Once Delivery
@@ -387,20 +393,24 @@ never stop or restart PostgreSQL/Redis services. Process tests may terminate the
 own application subprocesses. Static Compose checks need `docker-compose`; CI
 maps that command to its preinstalled `docker compose` CLI for configuration checks.
 
-Run outage tests with Docker and `docker-compose` available:
+Outage and Redis group/stream-loss acceptance tests are opt-in `disruptive` tests.
+Run them with Docker and `docker-compose` available:
 
 ```bash
 python -m tests.run_disruptive
 # Or select one outage test:
 python -m tests.run_disruptive tests/integration/test_worker_registry.py::test_worker_starts_while_postgres_is_down
+# Or the consumer-group loss acceptance tests:
+python -m tests.run_disruptive tests/integration/test_consumer_group_recovery.py
 ```
 
 The runner creates a unique `job-platform-disruptive-` project with only
 PostgreSQL and Redis, random loopback ports, disposable credentials, and isolated
 storage. It supplies `--run-disruptive` and a private infrastructure manifest.
-The flag alone cannot authorize service control. Helpers check effective targets,
-Docker ownership labels, container identities, ports, mounts, and network membership
-before acting on exact container IDs. The development Compose project is never stopped.
+The flag alone cannot authorize service control or Redis-state destruction. Helpers
+check effective targets, Docker ownership labels, container identities, ports, mounts,
+and network membership before acting on exact container IDs or disposable Redis data.
+The development Compose project is never stopped.
 Guarded cleanup runs even after test failure and verifies that no owned containers,
 volumes, or networks remain. Diagnostics are saved outside the repository; ambiguous
 ownership refuses cleanup and reports the failure for inspection. Run these tests
