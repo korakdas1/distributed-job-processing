@@ -134,7 +134,8 @@ cp .env.example .env
 
 python3.12 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e ".[dev]"
+python -m pip install -r requirements-dev.lock
+python -m pip install --no-build-isolation --no-deps -e .
 
 docker-compose up -d --build
 # v2: docker compose up -d --build
@@ -321,31 +322,70 @@ This is not “fully secure,” not OWASP-certified, and not a multi-user identi
 
 ## Testing
 
-Regular checks (host):
+GitHub Actions runs **Verify** on pull requests and pushes to `main`, with separate
+backend quality/unit, ordinary integration, and frontend checks. The canonical
+verification environment is **Linux, Python 3.12, and Node 24.21.0** (also recorded
+in `.node-version`). The package still supports Python >=3.11; CI does not yet
+verify every supported Python version.
+
+Install the tested Python dependency/tool set in a fresh environment:
 
 ```bash
+python3.12 -m venv .venv
 source .venv/bin/activate
-pytest tests/unit
-pytest tests/integration
+python -m pip install -r requirements-dev.lock
+python -m pip install --no-build-isolation --no-deps -e .
+python -m pip check
 ruff check .
 ruff format --check .
 mypy
+pytest tests/unit
 ```
 
-Frontend:
+`pyproject.toml` remains the package metadata and compatibility-range source of
+truth. `requirements-dev.lock` records the exact dependencies, build tools, and
+verification tools tested by CI; it does not restrict the package's public ranges.
+Regenerate it intentionally from those ranges in a clean Python 3.12 environment,
+then rerun verification and review every version change:
+
+```bash
+lock_env=$(mktemp -d)
+python3.12 -m venv "$lock_env"
+"$lock_env/bin/python" -m pip install --upgrade pip setuptools wheel
+"$lock_env/bin/python" -m pip install -e ".[dev]"
+"$lock_env/bin/python" -m pip freeze --all --exclude job-platform > requirements-dev.lock
+```
+
+This uses pip's existing environment export rather than another package manager.
+The temporary regeneration environment can be removed after reviewing the lock.
+
+For the dashboard, use the Node version in `.node-version` and the existing npm lock:
 
 ```bash
 cd dashboard
+npm ci
 npm run lint
 npm run typecheck
 npm run test
 npm run build
 ```
 
-Ordinary `pytest` and `pytest tests/integration` automatically skip tests marked
-`disruptive`. They never stop or restart PostgreSQL/Redis services. Ordinary
-integration tests still require local PostgreSQL (`job_platform_test`) and Redis
-DB 15, and clear those test stores between tests.
+Frontend lint warnings retain the tool's existing non-fatal policy; nonzero exits
+fail CI. The npm lock uses the public npm registry and pins dependency integrity.
+
+For ordinary local integration tests, configure local PostgreSQL
+(`job_platform_test`) and Redis DB 15, then run:
+
+```bash
+pytest tests/integration -rs
+```
+
+These tests clear the test stores between tests. CI supplies fresh PostgreSQL 16
+and Redis 7 service containers with explicit CI-only credentials. Ordinary
+`pytest` and `pytest tests/integration` automatically skip `disruptive` tests and
+never stop or restart PostgreSQL/Redis services. Process tests may terminate their
+own application subprocesses. Static Compose checks need `docker-compose`; CI
+maps that command to its preinstalled `docker compose` CLI for configuration checks.
 
 Run outage tests with Docker and `docker-compose` available:
 
