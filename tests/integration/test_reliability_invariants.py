@@ -187,8 +187,10 @@ async def test_initial_schedule_publisher_crash_window(
     job_id = created.json()["id"]
     real = schedule_delayed
 
-    async def crash_after_zadd(published_job_id: uuid.UUID, run_at: datetime) -> None:
-        await real(published_job_id, run_at)
+    async def crash_after_zadd(
+        published_job_id: uuid.UUID, run_at: datetime, *, outbox_event_id: uuid.UUID
+    ) -> None:
+        await real(published_job_id, run_at, outbox_event_id=outbox_event_id)
         raise RuntimeError("injected crash after ZADD")
 
     monkeypatch.setattr("job_platform.outbox.publisher.schedule_delayed", crash_after_zadd)

@@ -21,6 +21,7 @@ from job_platform.models.outbox import (
     OUTBOX_EVENT_JOB_DISPATCH,
     OUTBOX_EVENT_JOB_RETRY_SCHEDULE,
 )
+from job_platform.queue.client import get_redis
 from job_platform.queue.delayed import schedule_delayed
 from job_platform.queue.streams import StreamMessage, publish_job_id
 from job_platform.scheduler.promoter import promote_due_jobs
@@ -519,8 +520,10 @@ async def test_retry_schedule_publisher_crash_window(
     await process_next_message()
     real = schedule_delayed
 
-    async def crash_after_zadd(published_job_id: uuid.UUID, run_at: datetime) -> None:
-        await real(published_job_id, run_at)
+    async def crash_after_zadd(
+        published_job_id: uuid.UUID, run_at: datetime, *, outbox_event_id: uuid.UUID
+    ) -> None:
+        await real(published_job_id, run_at, outbox_event_id=outbox_event_id)
         raise RuntimeError("injected crash after ZADD")
 
     monkeypatch.setattr("job_platform.outbox.publisher.schedule_delayed", crash_after_zadd)
@@ -549,7 +552,9 @@ async def test_stale_delayed_score_is_rescored(client: AsyncClient) -> None:
     await drain_outbox()
     body = (await client.get(f"/jobs/{job_id}")).json()
     next_retry_at = datetime.fromisoformat(body["next_retry_at"])
-    await schedule_delayed(uuid.UUID(job_id), utcnow() - timedelta(seconds=30))
+    await get_redis().zadd(
+        get_settings().redis_delayed_zset, {job_id: (utcnow() - timedelta(seconds=30)).timestamp()}
+    )
     await promote_due_jobs()
     still = (await client.get(f"/jobs/{job_id}")).json()
     assert still["status"] == "RETRYING"
