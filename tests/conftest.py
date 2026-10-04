@@ -35,7 +35,9 @@ for _name in (
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
-        "--run-disruptive", action="store_true", help="Opt into isolated service outages"
+        "--run-disruptive",
+        action="store_true",
+        help="Opt into isolated outages and Redis-state loss",
     )
     parser.addoption(
         "--disposable-manifest", type=Path, help="Infrastructure created by the safe runner"
@@ -44,7 +46,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     if not config.getoption("--run-disruptive"):
-        skip = pytest.mark.skip(reason="Service disruption requires python -m tests.run_disruptive")
+        skip = pytest.mark.skip(reason="Disruptive tests require python -m tests.run_disruptive")
         for item in items:
             if item.get_closest_marker("disruptive"):
                 item.add_marker(skip)
@@ -77,5 +79,5 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
 @pytest.fixture
 def disposable_infrastructure(request: pytest.FixtureRequest) -> DisposableInfrastructure:
     if request.node.get_closest_marker("disruptive") is None:
-        raise pytest.UsageError("Service-control tests must have the disruptive marker")
+        raise pytest.UsageError("Infrastructure mutation tests must have the disruptive marker")
     return infrastructure_for(request.config)

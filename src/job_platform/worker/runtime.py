@@ -17,7 +17,7 @@ import time
 import uuid
 from datetime import datetime
 
-from redis.exceptions import RedisError
+from redis.exceptions import RedisError, ResponseError
 from sqlalchemy.exc import SQLAlchemyError
 
 from job_platform.core.clock import utcnow
@@ -43,6 +43,24 @@ from job_platform.worker.registry import (
 logger = logging.getLogger(__name__)
 
 _INFRA_PAUSE_SECONDS = 1.0
+
+
+def is_nogroup_error(exc: RedisError) -> bool:
+    """redis-py preserves the NOGROUP error code in ResponseError text."""
+    return isinstance(exc, ResponseError) and str(exc).split(" ", 1)[0] == "NOGROUP"
+
+
+async def _recover_consumer_groups(worker_id: str) -> bool:
+    """Try once; the normal worker loop owns retry pauses and stop checks."""
+    log_event(logger, "consumer_group_recovery_started", worker_id=worker_id)
+    try:
+        await ensure_consumer_groups()
+    except RedisError:
+        log_event(logger, "consumer_group_recovery_failed", worker_id=worker_id)
+        logger.exception("Consumer-group recovery failed; retrying after a short pause")
+        return False
+    log_event(logger, "consumer_group_recovery_succeeded", worker_id=worker_id)
+    return True
 
 
 def generate_worker_id() -> str:
@@ -214,9 +232,15 @@ async def worker_loop(
                 message_id=message.message_id,
             )
             await process_message(worker_id, message)
-        except RedisError:
-            log_event(logger, "queue_error", worker_id=worker_id)
-            logger.exception("Redis read/process failed; retrying after a short pause")
+        except RedisError as exc:
+            if is_nogroup_error(exc):
+                if stop is not None and stop.is_set():
+                    break
+                if await _recover_consumer_groups(worker_id):
+                    continue
+            else:
+                log_event(logger, "queue_error", worker_id=worker_id)
+                logger.exception("Redis read/process failed; retrying after a short pause")
             await asyncio.sleep(_INFRA_PAUSE_SECONDS)
         except SQLAlchemyError:
             log_event(logger, "database_error", worker_id=worker_id)
