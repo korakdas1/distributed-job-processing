@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -323,26 +323,6 @@ def _list_filters(
     return filters
 
 
-def _filtered_select(
-    *,
-    status: JobStatus | None,
-    job_type: JobType | None,
-    priority: JobPriority | None,
-    created_after: datetime | None,
-    created_before: datetime | None,
-) -> Select[tuple[Job]]:
-    stmt = select(Job)
-    for clause in _list_filters(
-        status=status,
-        job_type=job_type,
-        priority=priority,
-        created_after=created_after,
-        created_before=created_before,
-    ):
-        stmt = stmt.where(clause)
-    return stmt
-
-
 async def list_jobs(
     session: AsyncSession,
     *,
@@ -366,17 +346,9 @@ async def list_jobs(
         count_stmt = count_stmt.where(clause)
     total = int(await session.scalar(count_stmt) or 0)
 
-    stmt = (
-        _filtered_select(
-            status=status,
-            job_type=job_type,
-            priority=priority,
-            created_after=created_after,
-            created_before=created_before,
-        )
-        .order_by(Job.created_at.desc(), Job.id.desc())
-        .limit(limit)
-        .offset(offset)
-    )
+    stmt = select(Job)
+    for clause in clauses:
+        stmt = stmt.where(clause)
+    stmt = stmt.order_by(Job.created_at.desc(), Job.id.desc()).limit(limit).offset(offset)
     rows = (await session.scalars(stmt)).all()
     return rows, total

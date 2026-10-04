@@ -314,7 +314,9 @@ def collect_environment() -> dict[str, Any]:
             "WORKER_HEARTBEAT_INTERVAL_SECONDS": "2",
             "WORKER_HEARTBEAT_TTL_SECONDS": "6",
         },
-        "sqlalchemy_pool": "create_async_engine default (pool_pre_ping=True; no load-harness tuning)",
+        "sqlalchemy_pool": (
+            "create_async_engine default (pool_pre_ping=True; no load-harness tuning)"
+        ),
         "uvicorn": "single process exec uvicorn ... --host 0.0.0.0 --port 8000 (no --workers)",
         "local_machine_caveat": (
             "Results are from one local development machine using Docker Compose. "
@@ -957,9 +959,7 @@ def main() -> None:
     env["word_count_chars"] = len(WORD_COUNT_TEXT)
     env["sleep_seconds"] = SLEEP_SECONDS
     print(f"BENCH_PROJECT {PROJECT}")
-    print(
-        f"BENCH_PORTS api={API_HOST_PORT} postgres={POSTGRES_HOST_PORT} redis={REDIS_HOST_PORT}"
-    )
+    print(f"BENCH_PORTS api={API_HOST_PORT} postgres={POSTGRES_HOST_PORT} redis={REDIS_HOST_PORT}")
     print(f"BENCH_PROFILE {cfg.name} repeats={cfg.repeats} quick={args.quick}")
     print(f"BENCH_DEV_STACK_RUNNING {env['development_stack_running']}")
     compose("build")
